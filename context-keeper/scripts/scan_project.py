@@ -545,6 +545,10 @@ def generate_agents_patch(project_path: Path) -> str:
 2. **更新文件头注释** - 确保 @description 和 @lastModified 准确
 3. **检查 USERAGENTS.md** - 如果项目结构发生变化则更新
 
+**可选增强（推荐）**
+
+- 安装 context-keeper hooks，在会话结束时检查文档是否同步
+
 **这是强制要求，不可跳过。**
 
 """
@@ -712,7 +716,7 @@ def main():
     print("Next steps:")
     print("1. Review and customize USERAGENTS.md")
     print("2. Fill in [待补充] sections in TECH_INFO.md files")
-    print("3. The agent will now maintain these documents automatically")
+    print("3. Optionally install hooks for stop-time documentation checks")
 
 
 if __name__ == "__main__":

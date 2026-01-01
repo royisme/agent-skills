@@ -38,6 +38,7 @@ The script will:
 3. Generate USERAGENTS.md with project structure
 4. Create TECH_INFO.md templates for each directory
 5. Update AGENTS.md/CLAUDE.md with enforcement instructions
+6. (Optional) Install hooks to check documentation sync at session stop
 
 Use `--dry-run` to preview changes without modifying files.
 
@@ -72,6 +73,28 @@ At the end of each task, verify:
 1. **Structure changes**: Did the project structure change? Update USERAGENTS.md
 2. **Convention changes**: Were new patterns introduced? Update coding conventions
 3. **Documentation sync**: Are all TECH_INFO.md files current?
+
+### Optional: Non-invasive Hooks (Recommended)
+
+To make checks automatic, install the hook templates under `hooks/`:
+
+- `PostToolUse` logs tool activity (optional, for audit/debug)
+- `Stop` runs `scripts/check_context_sync.py` to warn (or block with `--strict`)
+- `SessionStart` can inject a reminder into context
+
+Hooks are user-configured and do not modify Claude Code settings automatically.
+
+## Dependencies & Runtime
+
+- **Python 3 required**: `scripts/scan_project.py` uses only the Python standard library
+- **No external packages**: safe to run in restricted environments
+- **Optional checker**: `scripts/check_context_sync.py` uses git and the filesystem only
+
+## Evaluation & Testing
+
+To align with best practices, create and run at least three real usage evaluations
+and test across the models you plan to use (Haiku, Sonnet, Opus).
+See [references/evaluations.md](references/evaluations.md) for example scenarios and a rubric.
 
 ## Documentation Templates
 
@@ -132,7 +155,7 @@ The skill adds mandatory instructions to AGENTS.md/CLAUDE.md:
 2. **Post-update requirement**: Agent must update documentation after any modification
 3. **Structure sync**: Agent must check if USERAGENTS.md needs updating after task completion
 
-This creates a self-maintaining documentation loop.
+Optional hooks can enforce a stop-time check without modifying Claude Code itself.
 
 ## File Structure
 

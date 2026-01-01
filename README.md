@@ -18,8 +18,8 @@ Context Keeper implements a three-level documentation system that ensures AI age
 - 🔍 Automatic tech stack detection (TypeScript, React, Go, Python, etc.)
 - 📋 Coding conventions inference based on detected stack
 - 🗂️ Smart directory filtering using `.gitignore`
-- 🔄 Self-maintaining documentation loop
-- 📝 Enforced documentation updates after code changes
+- 🔄 Optional stop-time documentation checks via hooks
+- 📝 Enforced documentation updates via AGENTS.md instructions
 
 **Use when:**
 - Starting work on a new project
@@ -29,7 +29,33 @@ Context Keeper implements a three-level documentation system that ensures AI age
 
 [→ Learn more about context-keeper](./context-keeper/SKILL.md)
 
----
+### [auto-browser](./auto-browser)
+
+**Automate Chrome via Puppeteer to browse, navigate, scrape and capture web pages.**
+
+Auto-Browser provides comprehensive tools for web automation and interaction:
+
+- **Browser Control** - Launch Chrome instances and manage browser lifecycle
+- **Page Navigation** - Open URLs, handle redirects, and manage page state
+- **DOM Interaction** - Interactive element picking and JavaScript execution
+- **Content Capture** - Take screenshots, extract HTML, and scrape web content
+
+**Key Features:**
+- 🌐 Full Chrome/Chromium automation via Puppeteer
+- 🖱️ Interactive DOM element selection tools
+- 📸 Screenshot and visual capture capabilities
+- 💻 Execute custom JavaScript on pages
+- 📄 HTML extraction and web scraping
+- 🔄 Session management and cookie handling
+
+**Use when:**
+- Automating web interactions and testing
+- Scraping content from websites
+- Taking screenshots of web pages
+- Testing web applications
+- Gathering information from dynamic websites
+
+[→ Learn more about auto-browser](./auto-browser/SKILL.md)
 
 ## Installation
 
@@ -71,10 +97,25 @@ Preview changes without modifying files:
 python ~/software/claude-skills/context-keeper/scripts/scan_project.py /path/to/your/project --dry-run
 ```
 
-Once initialized, AI agents will automatically:
+Once initialized, AI agents should:
 1. Read `USERAGENTS.md` and relevant `TECH_INFO.md` before modifying code
 2. Update documentation after completing changes
 3. Maintain accurate context throughout the session
+
+Optional: install the hook templates under `context-keeper/hooks/` to run a stop-time
+documentation sync check.
+
+Example Claude Code settings (adjust paths to your environment):
+
+```json
+{
+  "hooks": {
+    "SessionStart": "/absolute/path/to/claude-skills/context-keeper/hooks/session_start.sh",
+    "PostToolUse": "/absolute/path/to/claude-skills/context-keeper/hooks/post_tool_use.sh",
+    "Stop": "/absolute/path/to/claude-skills/context-keeper/hooks/stop.sh --strict"
+  }
+}
+```
 
 ---
 
