@@ -1,54 +1,54 @@
-# [目录名] - 技术文档
+# [Directory Name] - Technical Documentation
 
-> **目录功能**: [简要描述该目录的职责]
-> **最后更新**: YYYY-MM-DD
-
----
-
-## 📁 文件清单
-
-| 文件名 | 功能描述 | 入参 | 出参 | 依赖 |
-|--------|----------|------|------|------|
-| `example.ts` | 示例功能描述 | `Props` 类型 | `void` | `./utils` |
+> **Directory purpose**: [Brief description of this directory's responsibilities]
+> **Last updated**: YYYY-MM-DD
 
 ---
 
-## 🔗 依赖关系
+## 📁 File Inventory
+
+| Filename | Description | Input | Output | Dependencies |
+|----------|-------------|-------|--------|--------------|
+| `example.ts` | Example function description | `Props` type | `void` | `./utils` |
+
+---
+
+## 🔗 Dependencies
 
 ```
-本目录
-├── 依赖 → ../shared/types
-├── 依赖 → ../utils/http
-└── 被依赖 ← ../pages/index
+This directory
+├── depends on → ../shared/types
+├── depends on → ../utils/http
+└── is depended on by ← ../pages/index
 ```
 
 ---
 
-## 🏗️ 架构说明
+## 🏗️ Architecture Notes
 
-[描述该目录的设计模式、职责边界、与其他模块的关系]
-
----
-
-## 🔄 变更记录
-
-| 日期 | 变更内容 | 操作者 |
-|------|----------|--------|
-| YYYY-MM-DD | 初始化技术文档 | context-keeper |
+[Describe this directory's design patterns, responsibility boundaries, and relationships with other modules]
 
 ---
 
-## 📝 备注
+## 🔄 Change Log
 
-[在此添加该目录的特殊说明、架构决策或注意事项]
+| Date | Change | Operator |
+|------|--------|----------|
+| YYYY-MM-DD | Initialized technical documentation | context-keeper |
 
 ---
 
-## ⚠️ 维护规则
+## 📝 Notes
 
-**修改本目录下的文件时，必须：**
+[Add special notes, architectural decisions, or considerations for this directory]
 
-1. 更新上方的文件清单表格
-2. 更新变更记录
-3. 更新文件头部注释的 `@lastModified`
-4. 如有依赖变化，更新依赖关系图
+---
+
+## ⚠️ Maintenance Rules
+
+**When modifying files in this directory, you must:**
+
+1. Update the file inventory table above
+2. Update the change log
+3. Update `@lastModified` in file header comments
+4. Update the dependency diagram if dependencies have changed

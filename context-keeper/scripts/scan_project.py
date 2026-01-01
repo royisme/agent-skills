@@ -6,8 +6,11 @@ Scans a project directory to:
 1. Detect tech stack from config files (package.json, go.mod, pyproject.toml, etc.)
 2. Infer coding conventions based on tech stack
 3. Generate USERAGENTS.md with project structure and coding rules
-4. Create TECH_INFO.md templates for each directory
-5. Update AGENTS.md/CLAUDE.md to enforce reading USERAGENTS.md
+4. Update AGENTS.md/CLAUDE.md to enforce reading USERAGENTS.md
+
+NOTE: TECH_INFO.md files are NOT pre-generated. They are created on-demand
+when the AI agent works in a directory, ensuring only relevant directories
+have documentation.
 
 Usage:
     python scan_project.py <project-path> [--dry-run]
@@ -17,10 +20,9 @@ import argparse
 import json
 import os
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
-
 
 # ============================================================================
 # Tech Stack Detection
@@ -33,7 +35,8 @@ TECH_STACK_DETECTORS = {
     },
     "javascript": {
         "files": ["package.json"],
-        "check": lambda p: (p / "package.json").exists() and not (p / "tsconfig.json").exists(),
+        "check": lambda p: (p / "package.json").exists()
+        and not (p / "tsconfig.json").exists(),
     },
     "react": {
         "files": ["package.json"],
@@ -57,7 +60,9 @@ TECH_STACK_DETECTORS = {
     },
     "python": {
         "files": ["pyproject.toml", "requirements.txt", "setup.py"],
-        "check": lambda p: any((p / f).exists() for f in ["pyproject.toml", "requirements.txt", "setup.py"]),
+        "check": lambda p: any(
+            (p / f).exists() for f in ["pyproject.toml", "requirements.txt", "setup.py"]
+        ),
     },
     "rust": {
         "files": ["Cargo.toml"],
@@ -112,56 +117,56 @@ def detect_tech_stack(project_path: Path) -> list[str]:
 
 CODING_CONVENTIONS = {
     "typescript": [
-        "禁止使用 `any` 类型，必须使用明确的类型定义",
-        "使用 `unknown` 代替 `any` 处理未知类型",
-        "所有函数必须有明确的返回类型声明",
-        "使用 `interface` 定义对象结构，`type` 定义联合类型或复杂类型",
-        "启用 strict 模式下的所有检查",
+        "Do not use `any` type; must use explicit type definitions",
+        "Use `unknown` instead of `any` for unknown types",
+        "All functions must have explicit return type declarations",
+        "Use `interface` for object structures, `type` for unions and complex types",
+        "Enable all strict mode checks",
     ],
     "javascript": [
-        "使用 ES6+ 语法",
-        "使用 const 和 let，禁止 var",
-        "使用解构赋值简化代码",
+        "Use ES6+ syntax",
+        "Use const and let; avoid var",
+        "Use destructuring to simplify code",
     ],
     "react": [
-        "使用函数组件和 Hooks，避免 class 组件",
-        "组件文件使用 PascalCase 命名",
-        "使用 React.memo() 优化渲染性能",
-        "使用 useMemo/useCallback 避免不必要的重渲染",
+        "Use function components and Hooks; avoid class components",
+        "Use PascalCase for component file names",
+        "Use React.memo() for rendering optimization",
+        "Use useMemo/useCallback to avoid unnecessary re-renders",
     ],
     "astro": [
-        "使用 Astro 组件处理静态内容",
-        "仅在需要交互时使用 React/Vue 岛屿组件",
-        "遵循 Astro 的文件路由约定",
+        "Use Astro components for static content",
+        "Use React/Vue island components only when interaction is needed",
+        "Follow Astro file routing conventions",
     ],
     "nextjs": [
-        "使用 App Router (app/) 而非 Pages Router",
-        "使用 Server Components 作为默认",
-        "仅在需要交互时使用 'use client'",
+        "Use App Router (app/) instead of Pages Router",
+        "Use Server Components by default",
+        "Only use 'use client' when interaction is needed",
     ],
     "go": [
-        "遵循 Go 官方代码规范 (Effective Go)",
-        "使用 gofmt 格式化代码",
-        "错误必须显式处理，禁止忽略 error 返回值",
-        "使用有意义的变量名，避免单字母变量（循环变量除外）",
+        "Follow Go official coding standards (Effective Go)",
+        "Use gofmt for code formatting",
+        "Errors must be handled explicitly; never ignore error return values",
+        "Use meaningful variable names; avoid single-letter variables (except for loop variables)",
     ],
     "python": [
-        "遵循 PEP 8 代码规范",
-        "使用类型提示 (Type Hints)",
-        "使用 f-string 进行字符串格式化",
-        "使用 pathlib 而非 os.path",
+        "Follow PEP 8 coding standards",
+        "Use type hints",
+        "Use f-strings for string formatting",
+        "Use pathlib instead of os.path",
     ],
     "rust": [
-        "使用 cargo fmt 格式化代码",
-        "使用 cargo clippy 进行代码检查",
-        "优先使用 Result 而非 panic",
-        "所有公共 API 必须有文档注释",
+        "Use cargo fmt for code formatting",
+        "Use cargo clippy for code linting",
+        "Prefer Result over panic",
+        "All public APIs must have documentation comments",
     ],
     "common": [
-        "禁止直接使用原生 fetch，必须通过封装的 HTTP 工具类发起请求",
-        "禁止硬编码敏感信息（API keys、密码等）",
-        "禁止提交 .env 等配置文件到 git",
-        "所有异步操作必须有适当的错误处理",
+        "Do not use native fetch directly; must use wrapped HTTP utility",
+        "Do not hardcode sensitive information (API keys, passwords, etc.)",
+        "Do not commit .env files to git",
+        "All async operations must have proper error handling",
     ],
 }
 
@@ -188,9 +193,14 @@ def get_coding_conventions(tech_stacks: list[str]) -> list[str]:
 # Default directories to always ignore
 DEFAULT_IGNORE_DIRS = {
     # Version control
-    ".git", ".svn",
+    ".git",
+    ".svn",
     # IDE & editors
-    ".idea", ".vscode", ".cursor",
+    ".idea",
+    ".vscode",
+    ".cursor",
+    # Context-keeper internal
+    ".context-keeper",
 }
 
 
@@ -241,16 +251,14 @@ def get_ignore_dirs(project_path: Path) -> set[str]:
     return ignore_dirs
 
 
-def analyze_directory_structure(project_path: Path, max_depth: int = 3) -> dict:
+def analyze_directory_structure(project_path: Path) -> dict:
     """Analyze project directory structure."""
     structure = {}
 
     # Get ignore patterns from .gitignore
     ignore_dirs = get_ignore_dirs(project_path)
 
-    def scan_dir(path: Path, current_depth: int = 0) -> Optional[dict]:
-        if current_depth > max_depth:
-            return None
+    def scan_dir(path: Path) -> Optional[dict]:
         if path.name in ignore_dirs:
             return None
         if not path.is_dir():
@@ -268,7 +276,7 @@ def analyze_directory_structure(project_path: Path, max_depth: int = 3) -> dict:
                 if item.is_file() and not item.name.startswith("."):
                     result["files"].append(item.name)
                 elif item.is_dir() and item.name not in ignore_dirs:
-                    subdir = scan_dir(item, current_depth + 1)
+                    subdir = scan_dir(item)
                     if subdir:
                         result["subdirs"].append(subdir)
         except PermissionError:
@@ -276,7 +284,7 @@ def analyze_directory_structure(project_path: Path, max_depth: int = 3) -> dict:
 
         return result
 
-    return scan_dir(project_path, 0)
+    return scan_dir(project_path)
 
 
 def infer_directory_purpose(dir_name: str, files: list[str]) -> str:
@@ -284,59 +292,66 @@ def infer_directory_purpose(dir_name: str, files: list[str]) -> str:
     name_lower = dir_name.lower()
 
     purpose_map = {
-        "src": "源代码主目录",
-        "lib": "库文件和工具函数",
-        "utils": "通用工具函数",
-        "helpers": "辅助函数",
-        "components": "UI 组件",
-        "pages": "页面组件/路由",
-        "app": "应用核心逻辑",
-        "api": "API 接口定义",
-        "services": "业务服务层",
+        "src": "Source code root",
+        "lib": "Library files and utility functions",
+        "utils": "Utility functions",
+        "helpers": "Helper functions",
+        "components": "UI components",
+        "pages": "Page components/routes",
+        "app": "Application core logic",
+        "api": "API interface definitions",
+        "services": "Business service layer",
         "hooks": "React Hooks",
-        "stores": "状态管理",
-        "store": "状态管理",
-        "types": "类型定义",
-        "interfaces": "接口定义",
-        "models": "数据模型",
-        "schemas": "数据校验 schema",
-        "config": "配置文件",
-        "constants": "常量定义",
-        "assets": "静态资源",
-        "public": "公共静态文件",
-        "static": "静态文件",
-        "styles": "样式文件",
-        "css": "CSS 样式",
-        "tests": "测试文件",
-        "test": "测试文件",
-        "__tests__": "测试文件",
-        "spec": "测试规范",
-        "scripts": "脚本文件",
-        "bin": "可执行文件",
-        "docs": "文档",
-        "migrations": "数据库迁移",
-        "middleware": "中间件",
-        "plugins": "插件",
-        "layouts": "布局组件",
-        "templates": "模板文件",
-        "features": "功能模块",
-        "modules": "业务模块",
-        "domain": "领域模型",
-        "infrastructure": "基础设施层",
-        "adapters": "适配器层",
-        "ports": "端口定义",
+        "stores": "State management",
+        "store": "State management",
+        "types": "Type definitions",
+        "interfaces": "Interface definitions",
+        "models": "Data models",
+        "schemas": "Data validation schemas",
+        "config": "Configuration files",
+        "constants": "Constant definitions",
+        "assets": "Static assets",
+        "public": "Public static files",
+        "static": "Static files",
+        "styles": "Style files",
+        "css": "CSS stylesheets",
+        "tests": "Test files",
+        "test": "Test files",
+        "__tests__": "Test files",
+        "spec": "Test specifications",
+        "scripts": "Script files",
+        "bin": "Executable files",
+        "docs": "Documentation",
+        "migrations": "Database migrations",
+        "middleware": "Middleware",
+        "plugins": "Plugins",
+        "layouts": "Layout components",
+        "templates": "Template files",
+        "features": "Feature modules",
+        "modules": "Business modules",
+        "domain": "Domain models",
+        "infrastructure": "Infrastructure layer",
+        "adapters": "Adapter layer",
+        "ports": "Port definitions",
     }
 
     for key, purpose in purpose_map.items():
         if name_lower == key or name_lower.endswith(key):
             return purpose
 
-    return "[待补充：请描述该目录的功能]"
+    # Tier 2: Path semantics (e.g., payment-gateway -> Payment Gateway)
+    readable = name.replace("-", " ").replace("_", " ").title()
+    if readable != name:
+        return f"{readable} module"
+
+    # Tier 3: AI fallback
+    return "[To be analyzed by AI based on file contents]"
 
 
 # ============================================================================
 # File Generation
 # ============================================================================
+
 
 def generate_useragents_md(
     project_path: Path,
@@ -349,24 +364,24 @@ def generate_useragents_md(
     project_name = project_path.name
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
 
-    content = f"""# {project_name} - 项目上下文引导
+    content = f"""# {project_name} - Project Context Guide
 
-> **自动生成时间**: {timestamp}
-> **技术栈**: {', '.join(tech_stacks) if tech_stacks else '未检测到'}
-
----
-
-## ⚠️ 强制执行规则
-
-**每次操作前，必须执行以下步骤：**
-
-1. **阅读相关目录的 TECH_INFO.md** - 了解该目录下各文件的功能和依赖关系
-2. **遵循下方的编码规范** - 确保代码符合项目标准
-3. **修改完成后更新文档** - 同步更新 TECH_INFO.md 和文件头注释
+> **Generated at**: {timestamp}
+> **Tech stack**: {", ".join(tech_stacks) if tech_stacks else "Not detected"}
 
 ---
 
-## 📁 项目目录结构
+## ⚠️ Mandatory Rules
+
+**Before any operation, you must:**
+
+1. **Read relevant directory's TECH_INFO.md** - Understand file functions and dependencies
+2. **Follow coding conventions below** - Ensure code meets project standards
+3. **Update documentation after changes** - Sync TECH_INFO.md and file header comments
+
+---
+
+## 📁 Project Directory Structure
 
 """
 
@@ -386,7 +401,7 @@ def generate_useragents_md(
             lines.append(render_structure(subdir, indent + 1))
 
         if indent == 0:
-            lines.append(f"└── USERAGENTS.md  # 📌 本引导文件")
+            lines.append(f"└── USERAGENTS.md  # 📌 This guide file")
             lines.append(f"```")
 
         return "\n".join(lines)
@@ -398,9 +413,9 @@ def generate_useragents_md(
 
 ---
 
-## 📋 编码规范
+## 📋 Coding Conventions
 
-以下规范必须严格遵守：
+The following conventions must be strictly followed:
 
 """
 
@@ -411,59 +426,59 @@ def generate_useragents_md(
 
 ---
 
-## 📝 文档维护规则
+## 📝 Documentation Maintenance Rules
 
-### TECH_INFO.md 维护
+### TECH_INFO.md Maintenance
 
-每个目录必须包含 `TECH_INFO.md` 文件，内容包括：
+Each directory must contain a `TECH_INFO.md` file with the following content:
 
 ```markdown
-# [目录名] 技术文档
+# [Directory Name] Technical Documentation
 
-## 文件清单
+## File Inventory
 
-| 文件名 | 功能描述 | 入参 | 出参 | 依赖 |
-|--------|----------|------|------|------|
-| xxx.ts | 描述功能 | 类型 | 类型 | 依赖文件 |
+| Filename | Description | Input | Output | Dependencies |
+|----------|-------------|-------|--------|--------------|
+| xxx.ts | Function description | Type | Type | Dependent files |
 
-## 最近变更
+## Recent Changes
 
-- [日期] [变更内容]
+- [Date] [Change description]
 ```
 
-### 文件头注释规范
+### File Header Comment Standard
 
-每个代码文件必须包含头部注释：
+Each code file must contain a header comment:
 
 ```typescript
 /**
- * @file 文件名
- * @description 功能描述
- * @module 所属模块
- * @dependencies 依赖的其他文件
+ * @file Filename
+ * @description Function description
+ * @module Module name
+ * @dependencies Dependent files
  * @lastModified YYYY-MM-DD
  */
 ```
 
-### 强制更新时机
+### Mandatory Update Triggers
 
-在以下情况下，**必须**更新相关文档：
+In the following situations, you **must** update relevant documentation:
 
-1. ✅ 新增文件 → 更新 TECH_INFO.md 文件清单
-2. ✅ 修改文件功能 → 更新文件头注释和 TECH_INFO.md
-3. ✅ 删除文件 → 从 TECH_INFO.md 移除
-4. ✅ 修改依赖关系 → 更新依赖说明
-5. ✅ 新增目录 → 创建新的 TECH_INFO.md
+1. ✅ New file → Update TECH_INFO.md file inventory
+2. ✅ Modified file → Update file header comment and TECH_INFO.md
+3. ✅ Deleted file → Remove from TECH_INFO.md
+4. ✅ Dependency changes → Update dependency descriptions
+5. ✅ New directory → Create new TECH_INFO.md
 
 ---
 
-## 🔗 目录文档索引
+## 🔗 Directory Documentation Index
 
 """
 
     def list_tech_info_links(node: dict, base_path: str = "") -> list[str]:
         links = []
-        current_path = f"{base_path}/{node['name']}" if base_path else node['name']
+        current_path = f"{base_path}/{node['name']}" if base_path else node["name"]
 
         if base_path:  # Skip root
             purpose = infer_directory_purpose(node["name"], node["files"])
@@ -487,41 +502,43 @@ def generate_tech_info_md(dir_name: str, files: list[str]) -> str:
     purpose = infer_directory_purpose(dir_name, files)
     timestamp = datetime.now().strftime("%Y-%m-%d")
 
-    content = f"""# {dir_name} - 技术文档
+    content = f"""# {dir_name} - Technical Documentation
 
-> **目录功能**: {purpose}
-> **最后更新**: {timestamp}
+> **Directory purpose**: {purpose}
+> **Last updated**: {timestamp}
 
 ---
 
-## 📁 文件清单
+## 📁 File Inventory
 
-| 文件名 | 功能描述 | 入参 | 出参 | 依赖 |
-|--------|----------|------|------|------|
+| Filename | Description | Input | Output | Dependencies |
+|----------|-------------|-------|--------|--------------|
 """
 
     for file in sorted(files):
-        if file.endswith(('.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs')):
+        if file.endswith((".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".rs")):
             content += f"| `{file}` | [待补充] | [待补充] | [待补充] | [待补充] |\n"
 
-    if not any(f.endswith(('.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs')) for f in files):
+    if not any(
+        f.endswith((".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".rs")) for f in files
+    ):
         content += "| (无代码文件) | - | - | - | - |\n"
 
     content += """
 
 ---
 
-## 🔄 变更记录
+## 🔄 Change Log
 
-| 日期 | 变更内容 | 操作者 |
-|------|----------|--------|
-| {timestamp} | 初始化技术文档 | context-keeper |
+| Date | Change | Operator |
+|------|--------|----------|
+| {timestamp} | Initialized technical documentation | context-keeper |
 
 ---
 
-## 📝 备注
+## 📝 Notes
 
-[在此添加该目录的特殊说明、架构决策或注意事项]
+[Add special notes, architectural decisions, or considerations for this directory]
 """.format(timestamp=timestamp)
 
     return content
@@ -531,25 +548,25 @@ def generate_agents_patch(project_path: Path) -> str:
     """Generate content to add to AGENTS.md/CLAUDE.md."""
 
     return """
-## 🔒 强制执行：上下文维护 (context-keeper)
+## 🔒 MANDATORY: Context Maintenance (context-keeper)
 
-**在开始任何代码修改前，必须执行以下步骤：**
+**Before modifying any code, you must:**
 
-1. **阅读 USERAGENTS.md** - 了解项目结构和编码规范
-2. **阅读目标目录的 TECH_INFO.md** - 了解该目录下各文件的功能
-3. **遵循编码规范** - 确保代码符合项目标准
+1. **Read USERAGENTS.md** - Understand project structure and coding conventions
+2. **Read target directory's TECH_INFO.md** - Understand file functions in that directory
+3. **Follow coding conventions** - Ensure code meets project standards
 
-**完成代码修改后，必须执行以下步骤：**
+**After completing code changes, you must:**
 
-1. **更新 TECH_INFO.md** - 如果新增/修改/删除了文件
-2. **更新文件头注释** - 确保 @description 和 @lastModified 准确
-3. **检查 USERAGENTS.md** - 如果项目结构发生变化则更新
+1. **Update TECH_INFO.md** - If files were added/modified/deleted
+2. **Update file header comments** - Ensure @description and @lastModified are accurate
+3. **Check USERAGENTS.md** - Update if project structure has changed
 
-**可选增强（推荐）**
+**Optional Enhancement (Recommended)**
 
-- 安装 context-keeper hooks，在会话结束时检查文档是否同步
+- Install context-keeper hooks to check documentation sync at session end
 
-**这是强制要求，不可跳过。**
+**This is mandatory and cannot be skipped.**
 
 """
 
@@ -558,8 +575,15 @@ def generate_agents_patch(project_path: Path) -> str:
 # Main Execution
 # ============================================================================
 
+
 def create_tech_info_files(project_path: Path, structure: dict, dry_run: bool = False):
-    """Create TECH_INFO.md files for each directory."""
+    """
+    Create TECH_INFO.md files for each directory.
+
+    NOTE: This function is deprecated. TECH_INFO.md files should be created
+    on-demand by the AI agent when working in a directory, rather than
+    pre-generating for all directories.
+    """
 
     def process_dir(node: dict, parent_path: Path):
         if node["path"] == ".":
@@ -613,7 +637,12 @@ def update_agents_file(project_path: Path, dry_run: bool = False) -> bool:
                         insert_idx = i + 1
                         break
 
-            new_content = "\n".join(lines[:insert_idx]) + "\n" + patch_content + "\n".join(lines[insert_idx:])
+            new_content = (
+                "\n".join(lines[:insert_idx])
+                + "\n"
+                + patch_content
+                + "\n".join(lines[insert_idx:])
+            )
 
             if dry_run:
                 print(f"[DRY-RUN] Would update: {filepath}")
@@ -641,7 +670,11 @@ def main():
         description="Scan project and generate context documentation"
     )
     parser.add_argument("project_path", help="Path to the project directory")
-    parser.add_argument("--dry-run", action="store_true", help="Show what would be done without making changes")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be done without making changes",
+    )
 
     args = parser.parse_args()
     project_path = Path(args.project_path).resolve()
@@ -676,7 +709,9 @@ def main():
 
     # Step 4: Generate USERAGENTS.md
     print("📝 Generating USERAGENTS.md...")
-    useragents_content = generate_useragents_md(project_path, tech_stacks, conventions, structure)
+    useragents_content = generate_useragents_md(
+        project_path, tech_stacks, conventions, structure
+    )
     useragents_path = project_path / "USERAGENTS.md"
 
     if args.dry_run:
@@ -686,12 +721,7 @@ def main():
         print(f"✅ Created: {useragents_path}")
     print()
 
-    # Step 5: Create TECH_INFO.md files
-    print("📄 Creating TECH_INFO.md files...")
-    create_tech_info_files(project_path, structure, args.dry_run)
-    print()
-
-    # Step 6: Update AGENTS.md/CLAUDE.md
+    # Step 5: Update AGENTS.md/CLAUDE.md
     print("🔧 Updating agent configuration...")
     update_agents_file(project_path, args.dry_run)
     print()

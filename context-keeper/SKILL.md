@@ -22,6 +22,14 @@ Context Keeper implements a three-level documentation system that ensures AI age
 - **After completing changes**: Update TECH_INFO.md and file headers
 - **When project structure changes**: Update USERAGENTS.md
 
+## Key Design Decisions
+
+- **On-demand TECH_INFO.md generation**: Documentation is only created for directories where the AI actually works, avoiding unnecessary files
+- **Event-driven maintenance**: Hooks track file modifications and automatically prompt AI to update documentation at session end
+- **No git commits**: TECH_INFO.md files are excluded from version control (local context only)
+- **Full directory depth**: No artificial depth limitation - documentation scales with the project
+- **Language**: All generated content is in English for international teams
+
 ## Workflow
 
 ### Phase 1: Initialize Project Context
@@ -35,14 +43,46 @@ python scripts/scan_project.py <project-path>
 The script will:
 1. Detect tech stack (TypeScript, React, Go, Python, etc.)
 2. Infer coding conventions based on tech stack
-3. Generate USERAGENTS.md with project structure
-4. Create TECH_INFO.md templates for each directory
-5. Update AGENTS.md/CLAUDE.md with enforcement instructions
-6. (Optional) Install hooks to check documentation sync at session stop
+3. Generate `USERAGENTS.md` with project structure
+4. **Note**: `TECH_INFO.md` files are NOT pre-generated - they are created on-demand when you work in a directory
+5. Update `AGENTS.md/CLAUDE.md` with enforcement instructions
+6. (Optional) Install hooks to automatically track changes and enforce documentation updates
 
 Use `--dry-run` to preview changes without modifying files.
 
-### Phase 2: Before Any Code Modification
+### Phase 2: On-Demand TECH_INFO.md Creation
+
+When you start working in a directory that doesn't have `TECH_INFO.md`:
+
+1. Check if the directory has a `TECH_INFO.md` file
+2. If not, create it using the template format
+3. Fill in the descriptions based on your analysis of the code in that directory
+
+The template structure:
+```markdown
+# [Directory Name] - Technical Documentation
+
+> **Directory purpose**: [Your analysis based on file contents]
+> **Last updated**: YYYY-MM-DD
+
+---
+
+## 📁 File Inventory
+
+| Filename | Description | Input | Output | Dependencies |
+|----------|-------------|-------|--------|--------------|
+| file1.ts | [Accurate description] | Type | Type | ./other-file |
+
+---
+
+## 🔄 Change Log
+
+| Date | Change | Operator |
+|------|--------|----------|
+| YYYY-MM-DD | [What you changed] | context-keeper |
+```
+
+### Phase 3: Before Any Code Modification
 
 Before modifying any file, follow this checklist:
 
@@ -54,7 +94,7 @@ Pre-modification checklist:
 - [ ] Review file header comments for context
 ```
 
-### Phase 3: After Code Modification
+### Phase 4: After Code Modification
 
 After completing changes, update documentation:
 
@@ -66,48 +106,71 @@ Post-modification checklist:
 - [ ] Update USERAGENTS.md if directory structure changed
 ```
 
-### Phase 4: Task Completion Review
+### Phase 5: Automatic Enforcement (via Hooks)
 
-At the end of each task, verify:
+When the session ends, the `stop.sh` hook will:
+1. Check which files were modified during the session
+2. Group them by directory
+3. Display a **mandatory action list** requiring you to update documentation
+4. Block session completion (in `--strict` mode) until documentation is updated
 
-1. **Structure changes**: Did the project structure change? Update USERAGENTS.md
-2. **Convention changes**: Were new patterns introduced? Update coding conventions
-3. **Documentation sync**: Are all TECH_INFO.md files current?
+This ensures documentation is never forgotten, even when using multiple skills.
 
-### Optional: Non-invasive Hooks (Recommended)
+## Installation & Setup
 
-To make checks automatic, install the hook templates under `hooks/`:
+### 1. Install Dependencies
 
-- `PostToolUse` logs tool activity (optional, for audit/debug)
-- `Stop` runs `scripts/check_context_sync.py` to warn (or block with `--strict`)
-- `SessionStart` can inject a reminder into context
+```bash
+# No external dependencies required - uses Python standard library only
+python3 --version  # Requires Python 3.7+
+```
 
-Hooks are user-configured and do not modify Claude Code settings automatically.
+### 2. Initialize Documentation
+
+```bash
+# Generate initial USERAGENTS.md
+python scripts/scan_project.py /path/to/your/project
+
+# Preview without changes
+python scripts/scan_project.py /path/to/your/project --dry-run
+```
+
+### 3. (Optional) Install Hooks
+
+Configure hooks in your Claude Code settings:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": "/absolute/path/to/context-keeper/hooks/post_tool_use.sh",
+    "Stop": "/absolute/path/to/context-keeper/hooks/stop.sh --strict"
+  }
+}
+```
+
+**What the hooks do**:
+- `PostToolUse`: Tracks file modifications (edit_file, write, create, delete)
+- `Stop`: Displays mandatory documentation tasks before session end
+- `--strict` flag (optional): Blocks session completion until docs are updated
 
 ## Dependencies & Runtime
 
-- **Python 3 required**: `scripts/scan_project.py` uses only the Python standard library
-- **No external packages**: safe to run in restricted environments
-- **Optional checker**: `scripts/check_context_sync.py` uses git and the filesystem only
-
-## Evaluation & Testing
-
-To align with best practices, create and run at least three real usage evaluations
-and test across the models you plan to use (Haiku, Sonnet, Opus).
-See [references/evaluations.md](references/evaluations.md) for example scenarios and a rubric.
+- **Python 3.7+ required**: `scripts/scan_project.py` uses only the Python standard library
+- **No external packages**: Safe to run in restricted environments
+- **Git required**: For .gitignore parsing and tracking changes
 
 ## Documentation Templates
 
 ### TECH_INFO.md Template
 
-See [references/tech_info_template.md](references/tech_info_template.md) for the standard template.
+See `references/tech_info_template.md` for the standard template.
 
 ### File Header Template
 
 ```typescript
 /**
  * @file filename.ts
- * @description Brief description of file purpose
+ * @description Function description
  * @module ModuleName
  * @dependencies ./dependency1, ./dependency2
  * @lastModified YYYY-MM-DD
@@ -116,46 +179,47 @@ See [references/tech_info_template.md](references/tech_info_template.md) for the
 
 ### USERAGENTS.md Sections
 
-See [references/useragents_template.md](references/useragents_template.md) for the standard structure.
+See `references/useragents_template.md` for the standard structure.
 
 ## Coding Conventions by Tech Stack
 
 The scanner automatically infers conventions based on detected tech stack. Common rules include:
 
 **TypeScript/JavaScript:**
-- No `any` types - use `unknown` for unknown types
-- Explicit return types on functions
-- Use `interface` for objects, `type` for unions
+- Do not use `any` type - use `unknown` for unknown types
+- All functions must have explicit return type declarations
+- Use `interface` for objects, `type` for unions and complex types
+- Enable all strict mode checks
 
 **React:**
-- Function components with hooks only
+- Use function components and Hooks only
 - PascalCase for component files
 - Use React.memo() for optimization
+- Use useMemo/useCallback to avoid unnecessary re-renders
 
 **Go:**
-- Follow Effective Go guidelines
+- Follow Go official coding standards (Effective Go)
 - Always handle errors explicitly
 - Use gofmt for formatting
 
 **Python:**
-- Follow PEP 8
+- Follow PEP 8 coding standards
 - Use type hints
 - Use f-strings and pathlib
 
 **Common (all projects):**
-- No direct fetch - use HTTP wrapper utilities
-- No hardcoded secrets
-- Proper error handling for async operations
+- Do not use native fetch directly - use wrapped HTTP utility
+- Do not hardcode sensitive information
+- All async operations must have proper error handling
 
 ## Enforcement Mechanism
 
-The skill adds mandatory instructions to AGENTS.md/CLAUDE.md:
+The skill adds mandatory instructions to `AGENTS.md/CLAUDE.md`:
 
 1. **Pre-read requirement**: Agent must read USERAGENTS.md and relevant TECH_INFO.md before any modification
 2. **Post-update requirement**: Agent must update documentation after any modification
 3. **Structure sync**: Agent must check if USERAGENTS.md needs updating after task completion
-
-Optional hooks can enforce a stop-time check without modifying Claude Code itself.
+4. **Hook enforcement**: Stop hook displays mandatory action list when files were modified
 
 ## File Structure
 
@@ -163,19 +227,23 @@ Optional hooks can enforce a stop-time check without modifying Claude Code itsel
 project/
 ├── AGENTS.md          # Contains enforcement instructions
 ├── USERAGENTS.md      # Project-level context (auto-generated)
+├── .context-keeper/
+│   └── pending.txt    # Tracks modified files (created by hooks)
 ├── src/
-│   ├── TECH_INFO.md   # Directory-level documentation
+│   ├── TECH_INFO.md   # Directory-level documentation (created on-demand)
 │   ├── components/
 │   │   ├── TECH_INFO.md
 │   │   └── Button.tsx # With file header comments
 │   └── utils/
 │       ├── TECH_INFO.md
 │       └── http.ts
-└── .gitignore         # Contains TECH_INFO.md
+└── .gitignore         # Contains TECH_INFO.md and .context-keeper/
 ```
 
 ## Notes
 
-- TECH_INFO.md files are added to .gitignore by default (local context only)
-- USERAGENTS.md can be committed if desired for team sharing
+- `TECH_INFO.md` files are added to `.gitignore` by default (local context only)
+- `USERAGENTS.md` can be committed if desired for team sharing
 - The scanner can be re-run to refresh documentation
+- On-demand generation means only directories you actually work in will have documentation
+- Hooks ensure documentation is updated even when using multiple skills
