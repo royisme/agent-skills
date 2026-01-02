@@ -57,6 +57,68 @@ Auto-Browser provides comprehensive tools for web automation and interaction:
 
 [→ Learn more about auto-browser](./auto-browser/SKILL.md)
 
+### [ideate-pm](./ideate-pm)
+
+**Product Requirements Manager for ideation and product management.**
+
+Ideate-PM helps manage product design information by turning a single product idea into an evolving requirements collection. It maintains a requirements database with associated design decisions and open questions:
+
+- **Requirements Management** - Add, refine, and track product requirements with IDs
+- **Decision Tracking** - Record design decisions and their rationale
+- **Open Questions** - Track unresolved questions that need answers
+- **State Management** - Query current product design state and backlog
+- **Markdown Views** - Generate human-readable views from database
+
+**Key Features:**
+- 📋 SQLite-based authoritative storage for requirements
+- 🎯 Single product per repository management
+- 📝 Markdown view generation (PRODUCT.md, BACKLOG.md, OPEN_QUESTIONS.md)
+- 🔍 Requirement status tracking (PROPOSED, READY, DONE)
+- ⚖️ Priority management (P0, P1, P2)
+- 🗂️ Decision and question tracking with scope awareness
+
+**Use when:**
+- Starting a new product ideation process
+- Managing product requirements and backlog
+- Tracking design decisions and open questions
+- Maintaining product documentation and state
+- Collaborating on product features and specifications
+
+[→ Learn more about ideate-pm](./ideate-pm/SKILL.md)
+
+## ideate-pm Flowchart
+
+```mermaid
+graph TD
+    A[Start Product Ideation] --> B[Initialize Product<br/>init_product.py]
+    B --> C[Add Requirements<br/>add_requirement.py]
+    C --> D{Refine Requirements?}
+    D -->|Yes| E[Refine Requirement<br/>refine_requirement.py]
+    D -->|No| F{Add Decisions/Questions?}
+    E --> F
+    F -->|Add Decision| G[Record Decision<br/>record_decision.py]
+    F -->|Add Question| H[Add Open Question<br/>add_open_question.py]
+    F -->|Query State| I[Query State<br/>query_state.py]
+    G --> I
+    H --> I
+    I --> J{Continue?}
+    J -->|Yes| C
+    J -->|No| K[End]
+
+    style A fill:#e1f5fe
+    style K fill:#e8f5e8
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style I fill:#e0f2f1
+```
+
+The flowchart shows the main workflow of the ideate-pm skill:
+1. Start by initializing a product
+2. Add requirements to the product
+3. Optionally refine requirements, record decisions, or add open questions
+4. Query the current state of the product
+5. Continue the cycle as needed
+
 ## Installation
 
 ### Option 1: Clone the repository
