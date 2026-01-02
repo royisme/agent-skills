@@ -7,8 +7,12 @@ copying into a conversation.
 """
 
 import argparse
-import sqlite3
 from pathlib import Path
+
+from sqlite_support import load_sqlite_with_fts
+
+sqlite_env = load_sqlite_with_fts()
+sqlite3 = sqlite_env.sqlite
 
 
 def _meta(cur: sqlite3.Cursor) -> dict:
@@ -24,7 +28,9 @@ def main() -> None:
     skill_root = Path(__file__).resolve().parents[1]
     db_path = skill_root / "product" / "memory.sqlite"
     if not db_path.exists():
-        raise SystemExit("Repo product is not initialized. Run: python scripts/init_product.py --title \"...\"")
+        raise SystemExit(
+            'Repo product is not initialized. Run: python scripts/init_product.py --title "..."'
+        )
 
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
@@ -37,7 +43,9 @@ def main() -> None:
     print(f"Vision: {vision}")
     print("\n## Requirements")
 
-    cur.execute("SELECT req_id, title, status, priority FROM requirement ORDER BY req_id;")
+    cur.execute(
+        "SELECT req_id, title, status, priority FROM requirement ORDER BY req_id;"
+    )
     rows = cur.fetchall()
     if not rows:
         print("No requirements recorded.")
@@ -47,13 +55,19 @@ def main() -> None:
 
     if args.full:
         print("\n## Open questions")
-        cur.execute("SELECT scope_type, scope_ref, severity, question FROM open_question ORDER BY created_at;")
+        cur.execute(
+            "SELECT scope_type, scope_ref, severity, question FROM open_question ORDER BY created_at;"
+        )
         qs = cur.fetchall()
         if not qs:
             print("No open questions.")
         else:
             for scope_type, scope_ref, severity, q in qs:
-                scope = scope_type if scope_ref in ("", None) else f"{scope_type}:{scope_ref}"
+                scope = (
+                    scope_type
+                    if scope_ref in ("", None)
+                    else f"{scope_type}:{scope_ref}"
+                )
                 print(f"- [{severity}] {scope}: {q}")
 
     conn.close()

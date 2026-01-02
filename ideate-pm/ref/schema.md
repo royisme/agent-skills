@@ -82,7 +82,53 @@ Unresolved questions.
 | `question` | TEXT |
 | `severity` | TEXT |
 | `created_at` | DATETIME |
-| `resolved_by_decision_id` | INTEGER |
+`resolved_by_decision_id` | INTEGER |
+
+## FTS5 Virtual Tables
+
+Full-text search tables using SQLite FTS5 extension. These use the
+**external content** pattern: the original tables hold the data, and the
+FTS5 virtual tables maintain the search index. Triggers keep them in sync.
+
+### `requirement_fts`
+
+Search index for requirements. Automatically synced via triggers.
+
+| Column | Type |
+|---|---|
+| `req_id` | TEXT |
+| `title` | TEXT |
+| `description` | TEXT |
+
+**Content**: References `requirement` table via `content_rowid='id'`.
+
+**Triggers**: `requirement_ai` (INSERT), `requirement_au` (UPDATE), `requirement_ad` (DELETE)
+
+### `decision_fts`
+
+Search index for design decisions. Automatically synced via triggers.
+
+| Column | Type |
+|---|---|
+| `question` | TEXT |
+| `choice` | TEXT |
+| `rationale` | TEXT |
+
+**Content**: References `decision` table via `content_rowid='id'`.
+
+**Triggers**: `decision_ai` (INSERT), `decision_au` (UPDATE)
+
+### `open_question_fts`
+
+Search index for open questions. Automatically synced via triggers.
+
+| Column | Type |
+|---|---|
+| `question` | TEXT |
+
+**Content**: References `open_question` table via `content_rowid='id'`.
+
+**Triggers**: `open_question_ai` (INSERT), `open_question_au` (UPDATE)
 
 ### `entity` and `edge`
 

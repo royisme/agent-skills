@@ -12,10 +12,13 @@ view compilation, question generation, and graph/fts layers can be added later.
 """
 
 import argparse
-import sqlite3
 from pathlib import Path
 
 from compile_views import compile_views
+from sqlite_support import load_sqlite_with_fts
+
+sqlite_env = load_sqlite_with_fts()
+sqlite3 = sqlite_env.sqlite
 
 
 def _ensure_schema(cur: sqlite3.Cursor) -> None:
@@ -95,9 +98,102 @@ def _ensure_schema(cur: sqlite3.Cursor) -> None:
         """
     )
 
+    # FTS5 full-text search tables (external content mode)
+    cur.execute(
+        """
+        CREATE VIRTUAL TABLE IF NOT EXISTS requirement_fts USING fts5(
+          req_id, title, description,
+          content='requirement',
+          content_rowid='id'
+        );
+        """
+    )
+    cur.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS requirement_ai AFTER INSERT ON requirement BEGIN
+          INSERT INTO requirement_fts(rowid, req_id, title, description)
+          VALUES (NEW.id, NEW.req_id, NEW.title, NEW.description);
+        END;
+        """
+    )
+    cur.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS requirement_au AFTER UPDATE ON requirement BEGIN
+          INSERT INTO requirement_fts(requirement_fts, rowid, req_id, title, description)
+          VALUES ('delete', OLD.id, OLD.req_id, OLD.title, OLD.description);
+          INSERT INTO requirement_fts(rowid, req_id, title, description)
+          VALUES (NEW.id, NEW.req_id, NEW.title, NEW.description);
+        END;
+        """
+    )
+    cur.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS requirement_ad AFTER DELETE ON requirement BEGIN
+          INSERT INTO requirement_fts(requirement_fts, rowid, req_id, title, description)
+          VALUES ('delete', OLD.id, OLD.req_id, OLD.title, OLD.description);
+        END;
+        """
+    )
+    cur.execute(
+        """
+        CREATE VIRTUAL TABLE IF NOT EXISTS decision_fts USING fts5(
+          question, choice, rationale,
+          content='decision',
+          content_rowid='id'
+        );
+        """
+    )
+    cur.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS decision_ai AFTER INSERT ON decision BEGIN
+          INSERT INTO decision_fts(rowid, question, choice, rationale)
+          VALUES (NEW.id, NEW.question, NEW.choice, NEW.rationale);
+        END;
+        """
+    )
+    cur.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS decision_au AFTER UPDATE ON decision BEGIN
+          INSERT INTO decision_fts(decision_fts, rowid, question, choice, rationale)
+          VALUES ('delete', OLD.id, OLD.question, OLD.choice, OLD.rationale);
+          INSERT INTO decision_fts(rowid, question, choice, rationale)
+          VALUES (NEW.id, NEW.question, NEW.choice, NEW.rationale);
+        END;
+        """
+    )
+    cur.execute(
+        """
+        CREATE VIRTUAL TABLE IF NOT EXISTS open_question_fts USING fts5(
+          question,
+          content='open_question',
+          content_rowid='id'
+        );
+        """
+    )
+    cur.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS open_question_ai AFTER INSERT ON open_question BEGIN
+          INSERT INTO open_question_fts(rowid, question)
+          VALUES (NEW.id, NEW.question);
+        END;
+        """
+    )
+    cur.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS open_question_au AFTER UPDATE ON open_question BEGIN
+          INSERT INTO open_question_fts(open_question_fts, rowid, question)
+          VALUES ('delete', OLD.id, OLD.question);
+          INSERT INTO open_question_fts(rowid, question)
+          VALUES (NEW.id, NEW.question);
+        END;
+        """
+    )
+
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Initialize repo-scoped product storage")
+    parser = argparse.ArgumentParser(
+        description="Initialize repo-scoped product storage"
+    )
     parser.add_argument("--title", required=True, help="Product name")
     parser.add_argument("--vision", default="", help="Optional product vision")
     args = parser.parse_args()
@@ -111,8 +207,12 @@ def main() -> None:
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
     _ensure_schema(cur)
-    cur.execute("INSERT OR REPLACE INTO meta(key, value) VALUES('title', ?);", (args.title,))
-    cur.execute("INSERT OR REPLACE INTO meta(key, value) VALUES('vision', ?);", (args.vision,))
+    cur.execute(
+        "INSERT OR REPLACE INTO meta(key, value) VALUES('title', ?);", (args.title,)
+    )
+    cur.execute(
+        "INSERT OR REPLACE INTO meta(key, value) VALUES('vision', ?);", (args.vision,)
+    )
     conn.commit()
     conn.close()
 

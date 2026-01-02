@@ -10,10 +10,13 @@ criteria.
 """
 
 import argparse
-import sqlite3
 from pathlib import Path
 
 from compile_views import compile_views
+from sqlite_support import load_sqlite_with_fts
+
+sqlite_env = load_sqlite_with_fts()
+sqlite3 = sqlite_env.sqlite
 
 
 def main() -> None:
@@ -21,22 +24,36 @@ def main() -> None:
     parser.add_argument("--id", required=True, help="Requirement ID, e.g., R-001")
     parser.add_argument("--title", default="", help="New title")
     parser.add_argument("--description", default="", help="New description")
-    parser.add_argument("--priority", default="", choices=["", "P0", "P1", "P2"], help="New priority")
-    parser.add_argument("--status", default="", choices=["", "PROPOSED", "READY", "DONE"], help="New status")
+    parser.add_argument(
+        "--priority", default="", choices=["", "P0", "P1", "P2"], help="New priority"
+    )
+    parser.add_argument(
+        "--status",
+        default="",
+        choices=["", "PROPOSED", "READY", "DONE"],
+        help="New status",
+    )
     parser.add_argument(
         "--add-accept",
         action="append",
         default=[],
         help="Add one acceptance criterion (repeatable)",
     )
-    parser.add_argument("--accept-type", default="CHECKLIST", choices=["CHECKLIST", "GWT"], help="Acceptance type")
+    parser.add_argument(
+        "--accept-type",
+        default="CHECKLIST",
+        choices=["CHECKLIST", "GWT"],
+        help="Acceptance type",
+    )
     args = parser.parse_args()
 
     skill_root = Path(__file__).resolve().parents[1]
     db_path = skill_root / "product" / "memory.sqlite"
     views_dir = skill_root / "product" / "views"
     if not db_path.exists():
-        raise SystemExit("Repo product is not initialized. Run: python scripts/init_product.py --title \"...\"")
+        raise SystemExit(
+            'Repo product is not initialized. Run: python scripts/init_product.py --title "..."'
+        )
 
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()

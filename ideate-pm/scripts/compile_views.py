@@ -10,10 +10,14 @@ Design intent
 
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+from sqlite_support import load_sqlite_with_fts
+
+sqlite_env = load_sqlite_with_fts()
+sqlite3 = sqlite_env.sqlite
 
 
 @dataclass(frozen=True)
@@ -100,13 +104,20 @@ def compile_views(db_path: Path, views_dir: Path) -> None:
         for r in reqs:
             summary = (r.description or "").strip().replace("\n", " ")
             summary = summary[:120] + ("…" if len(summary) > 120 else "")
-            lines.append(f"- `{r.req_id}` [{r.status}, {r.priority}] {r.title} — {summary}")
+            lines.append(
+                f"- `{r.req_id}` [{r.status}, {r.priority}] {r.title} — {summary}"
+            )
         lines.append("")
 
         lines.append("## Details")
         lines.append("")
         for r in reqs:
-            lines += [f"### {r.req_id}: {r.title}", "", (r.description or "").strip() or "(No description)", ""]
+            lines += [
+                f"### {r.req_id}: {r.title}",
+                "",
+                (r.description or "").strip() or "(No description)",
+                "",
+            ]
             items = acc.get(r.req_id, [])
             lines.append("**Acceptance Criteria**:")
             lines.append("")
@@ -114,7 +125,13 @@ def compile_views(db_path: Path, views_dir: Path) -> None:
                 lines += [f"- {t}" for t in items]
             else:
                 lines.append("- (None yet)")
-            lines += ["", f"**Status**: {r.status}", "", f"**Priority**: {r.priority}", ""]
+            lines += [
+                "",
+                f"**Status**: {r.status}",
+                "",
+                f"**Priority**: {r.priority}",
+                "",
+            ]
     backlog_md.write_text("\n".join(lines), encoding="utf-8")
 
     # OPEN_QUESTIONS.md
@@ -149,8 +166,12 @@ def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Compile Markdown views")
-    parser.add_argument("--db", default="", help="Path to SQLite db (default: product/memory.sqlite)")
-    parser.add_argument("--views", default="", help="Path to views dir (default: product/views)")
+    parser.add_argument(
+        "--db", default="", help="Path to SQLite db (default: product/memory.sqlite)"
+    )
+    parser.add_argument(
+        "--views", default="", help="Path to views dir (default: product/views)"
+    )
     args = parser.parse_args()
 
     skill_root = Path(__file__).resolve().parents[1]

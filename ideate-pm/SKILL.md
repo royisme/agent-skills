@@ -23,7 +23,15 @@ captures and evolves product requirements.
 - Views (compiled): `product/views/PRODUCT.md`, `BACKLOG.md`, `OPEN_QUESTIONS.md`
 
 This skill intentionally stores its data **inside the skill folder** so users do not
-need to learn an extra top-level directory convention.
+need to learn an extra top-level directory convention. The Python helper scripts
+expect the dependencies listed in `requirements.txt`; install them once per
+environment:
+
+```bash
+pip install -r requirements.txt
+```
+
+This ensures the bundled SQLite build includes FTS5 for multilingual search.
 
 ## Operations
 
@@ -53,11 +61,30 @@ python scripts/refine_requirement.py --id R-001
 
 ### 4) Show current product design
 
-When the user asks “当前产品怎么设计的？” or similar:
+When the user asks about current product design or similar questions:
 
 ```bash
 python scripts/query_state.py
 ```
+
+### 5) Full-text search
+
+When the user asks for requirements, decisions, or questions containing specific keywords:
+
+```bash
+# Search across all scopes
+python scripts/search.py --query "payment"
+
+# Search specific scope
+python scripts/search.py --query "payment" --scope requirement
+python scripts/search.py --query "why change" --scope decision
+```
+
+The search backend can be controlled with `--mode {auto,fts,like}` or the
+`IDEATE_PM_SEARCH_MODE` environment variable (same values). `auto` uses FTS5 when
+available and falls back to fuzzy `LIKE` queries otherwise; `fts` forces FTS5 and
+errors or downgrades if the engine is missing; `like` forces the fallback (useful
+when matching against older databases).
 
 Optional persistence helpers (use when relevant):
 

@@ -11,10 +11,13 @@ Question generation and rich view compilation are intentionally minimal in v1.
 """
 
 import argparse
-import sqlite3
 from pathlib import Path
 
 from compile_views import compile_views
+from sqlite_support import load_sqlite_with_fts
+
+sqlite_env = load_sqlite_with_fts()
+sqlite3 = sqlite_env.sqlite
 
 
 def _next_req_id(cur: sqlite3.Cursor) -> str:
@@ -39,7 +42,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Add a requirement (repo-scoped)")
     parser.add_argument("--description", required=True, help="Requirement idea")
     parser.add_argument("--title", default="", help="Optional short title")
-    parser.add_argument("--priority", default="P2", choices=["P0", "P1", "P2"], help="Initial priority")
+    parser.add_argument(
+        "--priority", default="P2", choices=["P0", "P1", "P2"], help="Initial priority"
+    )
     args = parser.parse_args()
 
     skill_root = Path(__file__).resolve().parents[1]
@@ -47,7 +52,7 @@ def main() -> None:
     views_dir = skill_root / "product" / "views"
     if not db_path.exists():
         raise SystemExit(
-            "Repo product is not initialized. Run: python scripts/init_product.py --title \"...\""
+            'Repo product is not initialized. Run: python scripts/init_product.py --title "..."'
         )
 
     title = (args.title or args.description).strip()

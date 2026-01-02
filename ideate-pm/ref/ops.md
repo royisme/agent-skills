@@ -4,6 +4,12 @@ This document describes the supported operations of the `product-requirements` s
 This skill assumes **one product per repo**. All operations update the repo-scoped
 SQLite database and compiled views under `product/` (inside the skill folder).
 
+Install the Python dependencies once per environment to ensure the packaged SQLite build includes FTS5:
+
+```
+pip install -r requirements.txt
+```
+
 Important: Interactive clarification (asking follow-up questions) is performed by the
 agent in chat. The scripts are intentionally deterministic and exist primarily to
 persist outcomes (requirements, acceptance criteria, decisions, open questions) and

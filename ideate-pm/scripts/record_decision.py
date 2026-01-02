@@ -10,24 +10,39 @@ to keep the compiled artifacts short, but they remain queryable via SQL.
 """
 
 import argparse
-import sqlite3
 from pathlib import Path
+
+from sqlite_support import load_sqlite_with_fts
+
+sqlite_env = load_sqlite_with_fts()
+sqlite3 = sqlite_env.sqlite
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Record a design decision")
-    parser.add_argument("--scope", default="product", choices=["product", "requirement"], help="Decision scope")
-    parser.add_argument("--ref", default="product", help="Scope ref: 'product' or a req id like R-001")
+    parser.add_argument(
+        "--scope",
+        default="product",
+        choices=["product", "requirement"],
+        help="Decision scope",
+    )
+    parser.add_argument(
+        "--ref", default="product", help="Scope ref: 'product' or a req id like R-001"
+    )
     parser.add_argument("--question", required=True, help="The question being answered")
     parser.add_argument("--choice", required=True, help="The chosen answer")
     parser.add_argument("--rationale", default="", help="Why this choice was made")
-    parser.add_argument("--confidence", type=float, default=0.7, help="0..1 confidence (default 0.7)")
+    parser.add_argument(
+        "--confidence", type=float, default=0.7, help="0..1 confidence (default 0.7)"
+    )
     args = parser.parse_args()
 
     skill_root = Path(__file__).resolve().parents[1]
     db_path = skill_root / "product" / "memory.sqlite"
     if not db_path.exists():
-        raise SystemExit("Repo product is not initialized. Run: python scripts/init_product.py --title \"...\"")
+        raise SystemExit(
+            'Repo product is not initialized. Run: python scripts/init_product.py --title "..."'
+        )
 
     scope_ref = args.ref.strip() or ("product" if args.scope == "product" else "")
     q = args.question.strip()
