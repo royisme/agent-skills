@@ -121,7 +121,26 @@ The flowchart shows the main workflow of the ideate-pm skill:
 
 ## Installation
 
-### Option 1: Clone the repository
+### Option 1: Plugin Marketplace (Recommended)
+
+Install all skills in this collection using Claude Code's plugin system:
+
+```bash
+# Add this marketplace to your local marketplaces
+git clone https://github.com/YOUR_USERNAME/claude-skills.git ~/.claude/plugins/marketplaces/claude-skills-collection
+
+# Install individual skills
+claude plugin install auto-browser
+claude plugin install context-keeper
+claude plugin install ideate-pm
+```
+
+This method allows you to:
+- Update skills with `claude plugin update <skill-name>`
+- Manage skills easily with `claude plugin list` / `claude plugin disable`
+- Receive updates when marketplace is updated
+
+### Option 2: Clone the repository
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/claude-skills.git ~/software/claude-skills
@@ -132,14 +151,20 @@ Then reference the skill in your Claude Code settings:
 ```json
 {
   "skills": [
-    "~/software/claude-skills/context-keeper"
+    "~/software/claude-skills/context-keeper",
+    "~/software/claude-skills/auto-browser",
+    "~/software/claude-skills/ideate-pm"
   ]
 }
 ```
 
-### Option 2: Download individual skills
+Note: With this method, updates must be done manually with `git pull`.
+
+### Option 3: Download individual skills
 
 Download the packaged `.zip` file from [Releases](https://github.com/YOUR_USERNAME/claude-skills/releases) and install via Claude Code.
+
+Use this if you only need one or two specific skills.
 
 ---
 
@@ -147,10 +172,22 @@ Download the packaged `.zip` file from [Releases](https://github.com/YOUR_USERNA
 
 ### context-keeper
 
+**Dependencies**: Python 3.7+
+
 Initialize documentation for your project:
 
 ```bash
+# If installed via plugin
+python ~/.claude/plugins/cache/claude-skills-collection/context-keeper/1.0.0/scripts/scan_project.py /path/to/your/project
+
+# If using local clone
 python ~/software/claude-skills/context-keeper/scripts/scan_project.py /path/to/your/project
+```
+
+Preview changes without modifying files:
+
+```bash
+python <path-to-context-keeper>/scripts/scan_project.py /path/to/your/project --dry-run
 ```
 
 Preview changes without modifying files:
@@ -164,26 +201,172 @@ Once initialized, AI agents should:
 2. Update documentation after completing changes
 3. Maintain accurate context throughout the session
 
-Optional: install the hook templates under `context-keeper/hooks/` to run a stop-time
-documentation sync check.
+Optional: install the hook templates to run a stop-time documentation sync check:
+
+```bash
+# Copy hooks to your project
+cp -r <path-to-context-keeper>/hooks/.your-project/.claude-hooks/
+
+# Configure in Claude Code settings
+```
+
+Example Claude Code settings (adjust paths to your environment):
 
 Example Claude Code settings (adjust paths to your environment):
 
 ```json
 {
   "hooks": {
-    "SessionStart": "/absolute/path/to/claude-skills/context-keeper/hooks/session_start.sh",
-    "PostToolUse": "/absolute/path/to/claude-skills/context-keeper/hooks/post_tool_use.sh",
-    "Stop": "/absolute/path/to/claude-skills/context-keeper/hooks/stop.sh --strict"
+    "SessionStart": "/absolute/path/to/context-keeper/hooks/session_start.sh",
+    "PostToolUse": "/absolute/path/to/context-keeper/hooks/post_tool_use.sh",
+    "Stop": "/absolute/path/to/context-keeper/hooks/stop.sh --strict"
   }
 }
 ```
+
+### auto-browser
+
+**Dependencies**: Node.js 18+, Chrome/Chromium
+
+Install dependencies:
+
+```bash
+# If installed via plugin (auto-managed)
+# Dependencies are installed automatically on first use
+
+# If using local clone
+npm install --prefix <path-to-auto-browser>
+```
+
+Launch Chrome and start automating:
+
+```bash
+node <path-to-auto-browser>/scripts/start.js --profile --port 9222
+node <path-to-auto-browser>/scripts/nav.js https://example.com --new
+node <path-to-auto-browser>/scripts/screenshot.js --file screenshot.png --fullpage
+```
+
+### ideate-pm
+
+**Dependencies**: Python 3.7+
+
+Install dependencies:
+
+```bash
+# If installed via plugin
+pip install -r <path-to-ideate-pm>/requirements.txt
+
+# If using local clone
+pip install -r ~/software/claude-skills/ideate-pm/requirements.txt
+```
+
+Initialize a new product:
+
+```bash
+python <path-to-ideate-pm>/scripts/init_product.py --title "Your Product Name"
+```
+
+Add requirements and track decisions:
+
+```bash
+python <path-to-ideate-pm>/scripts/add_requirement.py --description "User authentication"
+python <path-to-ideate-pm>/scripts/record_decision.py --scope product --question "Which database?" --choice "PostgreSQL"
+```
+
+---
+
+## Version Management
+
+This project follows [Semantic Versioning](https://semver.org/) (MAJOR.MINOR.PATCH):
+
+- **MAJOR**: Incompatible API changes
+- **MINOR**: Backwards-compatible functionality additions
+- **PATCH**: Backwards-compatible bug fixes
+
+Each plugin maintains its own version:
+
+| Plugin | Version | Changelog |
+|--------|---------|-----------|
+| auto-browser | 1.0.0 | [View](./auto-browser/CHANGELOG.md) |
+| context-keeper | 1.0.0 | [View](./context-keeper/CHANGELOG.md) |
+| ideate-pm | 1.0.0 | [View](./ideate-pm/CHANGELOG.md) |
+
+### Updating Skills
+
+If installed via plugin marketplace:
+
+```bash
+# Update all installed skills from this collection
+claude plugin update auto-browser
+claude plugin update context-keeper
+claude plugin update ideate-pm
+
+# Or update all at once
+claude plugin update
+```
+
+If using local clone:
+
+```bash
+cd ~/software/claude-skills
+git pull
+```
+
+For detailed change history, see [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
 ## Development
 
-### Creating a new skill
+### Adding a new plugin to this marketplace
+
+1. Create your skill directory following the standard structure:
+
+```
+new-skill/
+├── SKILL.md              # Required: metadata + instructions
+├── scripts/              # Optional: executable code
+├── references/           # Optional: documentation/references
+└── CHANGELOG.md          # Recommended: version history
+```
+
+2. Add an entry to [`.claude-plugin/marketplace.json`](./.claude-plugin/marketplace.json):
+
+```json
+{
+  "name": "new-skill",
+  "description": "Brief description of what this skill does",
+  "source": "./",
+  "version": "1.0.0",
+  "category": "your-category",
+  "keywords": ["keyword1", "keyword2"],
+  "skills": ["./new-skill"],
+  "runtime": {
+    "dependencies": {
+      "python": ">=3.7.0"
+    }
+  }
+}
+```
+
+3. Update root [CHANGELOG.md](./CHANGELOG.md) with the new skill
+
+4. Validate the marketplace:
+
+```bash
+claude plugin validate .
+```
+
+5. Commit and tag the release:
+
+```bash
+git add .
+git commit -m "feat(marketplace): add new-skill plugin"
+git tag -a v1.1.0 -m "Release v1.1.0 - Add new-skill"
+git push && git push --tags
+```
+
+### Creating a new standalone skill
 
 Skills follow the [Anthropic Skills specification](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices):
 
@@ -200,10 +383,20 @@ skill-name/
 Contributions are welcome! Please:
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/new-skill`)
+2. Create a feature branch: `git checkout -b feature/new-skill`
 3. Follow the [skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
-4. Test your skill thoroughly
-5. Submit a pull request
+4. Add/update CHANGELOG.md for your changes
+5. Validate the marketplace: `claude plugin validate .`
+6. Test your skill thoroughly
+7. Submit a pull request with a clear description
+
+**Commit Message Format**:
+
+Use conventional commits for consistency:
+- `feat(skill-name): add new feature`
+- `fix(skill-name): resolve issue`
+- `docs(skill-name): update documentation`
+- `chore(marketplace): update plugin metadata`
 
 ---
 

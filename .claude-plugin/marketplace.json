@@ -1,0 +1,62 @@
+{
+  "name": "claude-skills-collection",
+  "owner": {
+    "name": "royzhu",
+    "email": "your-email@example.com"
+  },
+  "metadata": {
+    "description": "Collection of Claude Code skills for browser automation, context management, and product requirements",
+    "version": "1.0.0",
+    "homepage": "https://github.com/YOUR_USERNAME/claude-skills",
+    "repository": "https://github.com/YOUR_USERNAME/claude-skills",
+    "license": "MIT"
+  },
+  "plugins": [
+    {
+      "name": "auto-browser",
+      "description": "Automate Chrome via Puppeteer to browse, navigate, scrape and capture web pages",
+      "source": "./",
+      "version": "1.0.0",
+      "category": "automation",
+      "keywords": [
+        "browser",
+        "puppeteer",
+        "web-scraping",
+        "automation",
+        "chrome",
+        "screenshot"
+      ],
+      "skills": ["./auto-browser"]
+    },
+    {
+      "name": "context-keeper",
+      "description": "Maintains project context through progressive disclosure and enforced documentation",
+      "source": "./",
+      "version": "1.0.0",
+      "category": "developer-tools",
+      "keywords": [
+        "context",
+        "documentation",
+        "project-management",
+        "tech-stack",
+        "conventions"
+      ],
+      "skills": ["./context-keeper"]
+    },
+    {
+      "name": "ideate-pm",
+      "description": "Product Requirements Manager for ideation and product management",
+      "source": "./",
+      "version": "1.0.0",
+      "category": "productivity",
+      "keywords": [
+        "product-management",
+        "requirements",
+        "ideation",
+        "sqlite",
+        "markdown"
+      ],
+      "skills": ["./ideate-pm"]
+    }
+  ]
+}
