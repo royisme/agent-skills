@@ -33,3 +33,4 @@ htmlcov/
 *.tmp
 *.bak
 .security-scan-passed
+.works

@@ -1,8 +1,39 @@
 # Claude Skills Collection
 
-A collection of custom skills for [Claude Code](https://code.claude.com) that extend AI agent capabilities with specialized workflows and domain knowledge.
+A collection of custom skills and agents for [Claude Code](https://code.claude.com) that extend AI capabilities with specialized workflows, domain knowledge, and best practices.
+
+> 📘 **[Read the full story](./ABOUT.md)** - Learn about our philosophy, architecture, and roadmap.
 
 ## Available Skills
+
+### [friendly-python](./friendly-python)
+
+**Python coding standards and patterns for user-friendly and maintainer-friendly code.**
+
+Friendly Python provides comprehensive guidelines for writing Pythonic code that's both easy to use and easy to maintain. Based on Frost Ming's "Friendly Python" series, this skill encapsulates best practices for API design, code organization, and common patterns.
+
+- **Registry Patterns** - Replace if-else chains with extensible registries
+- **Context Managers** - Proper resource management with `with` statements
+- **Classmethod Constructors** - Multiple input sources with clean APIs
+- **Descriptors** - Explicit field definitions over `__getattr__` magic
+- **Extension Points** - Use official hooks instead of custom wrappers
+- **Python Idioms** - async/await, decorators, generators over callbacks
+
+**Key Features:**
+- 🎯 7 proven code patterns with good/bad examples
+- ✅ Review checklist for code quality assessment
+- 📚 Quick reference tables for common scenarios
+- 🐍 Pythonic over ported patterns from other languages
+- 🔍 Type hints and discoverability first
+
+**Use when:**
+- Writing new Python code
+- Reviewing and refactoring existing code
+- Designing public APIs
+- Porting code from other languages to Python
+- Training team members on Python best practices
+
+[→ Learn more about friendly-python](./friendly-python/SKILL.md)
 
 ### [context-keeper](./context-keeper)
 
@@ -85,6 +116,83 @@ Ideate-PM helps manage product design information by turning a single product id
 - Collaborating on product features and specifications
 
 [→ Learn more about ideate-pm](./ideate-pm/SKILL.md)
+
+### [cloudflare-guide](./cloudflare-guide)
+
+**Cloudflare development assistant with access to official documentation.**
+
+Cloudflare Guide provides quick access to official Cloudflare documentation and best practices for building with Workers, Pages, R2, D1, KV, and other Cloudflare services.
+
+**Key Features:**
+- 📚 Official documentation references
+- 🔧 Wrangler configuration guidance
+- ⚡ Workers and Pages development patterns
+- 💾 Storage solutions (R2, D1, KV, Durable Objects)
+- 🌐 Networking and security best practices
+
+**Use when:**
+- Building Cloudflare Workers or Pages applications
+- Configuring Wrangler or deployment settings
+- Integrating Cloudflare storage services
+- Troubleshooting Cloudflare-specific issues
+
+[→ Learn more about cloudflare-guide](./cloudflare-guide/SKILL.md)
+
+---
+
+## Available Agents
+
+### [python-coder](./agents/python-coder.md)
+
+**Expert Python developer following "Friendly Python" principles.**
+
+The Python Coder agent writes, reviews, refactors, and optimizes Python code according to best practices. It automatically leverages the `friendly-python` skill to ensure code is both user-friendly and maintainer-friendly.
+
+**Capabilities:**
+- ✍️ Write new Python features with proper design patterns
+- 🔍 Review code against 6-point quality checklist
+- ♻️ Refactor to use registry patterns, context managers, classmethod constructors
+- 🎨 Design APIs from caller's perspective (top-down)
+- 📝 Type-annotated, well-documented code
+
+**Workflow:**
+1. Understand requirements and existing codebase
+2. Design API from caller's perspective
+3. Implement using Friendly Python patterns
+4. Review against quality checklist
+5. Refine and document design decisions
+
+**Use when:**
+- Writing new Python code or features
+- Reviewing Python code for quality
+- Refactoring legacy Python code
+- Designing Python APIs or libraries
+- Porting code from other languages to Python
+
+[→ View agent definition](./agents/python-coder.md)
+
+### [cloudflare-docs-fetcher](./agents/cloudflare-docs-fetcher.md)
+
+**Fetch and analyze official Cloudflare documentation.**
+
+This agent retrieves the latest official Cloudflare documentation and provides concise, actionable answers to development questions.
+
+**Capabilities:**
+- 🔎 Fetch latest official Cloudflare docs
+- 📖 Answer questions about Workers, Pages, R2, D1, KV
+- ⚙️ Wrangler configuration guidance
+- 💡 Best practices and common patterns
+- 🐛 Troubleshooting and debugging help
+
+**Use when:**
+- Questions about Cloudflare services
+- Configuration or deployment issues
+- API usage or feature questions
+- Best practices for Cloudflare development
+
+[→ View agent definition](./agents/cloudflare-docs-fetcher.md)
+
+---
 
 ## ideate-pm Flowchart
 

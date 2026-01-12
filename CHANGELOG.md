@@ -8,7 +8,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial marketplace support for Claude Code plugin installation
+- TBD
+
+## [1.1.0] - 2026-01-09
+
+### Added
+
+#### Skills
+- **feat(friendly-python)**: Python coding standards and patterns skill
+  - Core design principles (user-friendly + maintainer-friendly)
+  - 7 code patterns with good/bad examples
+  - Review checklist for code quality assessment
+  - Quick reference tables
+  - Based on Frost Ming's "Friendly Python" series
+
+#### Agents
+- **feat(python-coder)**: Python development agent
+  - Writes, reviews, refactors, and optimizes Python code
+  - Follows "Friendly Python" philosophy
+  - Applies registry patterns, context managers, classmethod constructors
+  - Top-down API design approach
+  - Integrated with friendly-python skill
+
+#### Documentation
+- **docs(about)**: Add comprehensive ABOUT.md
+  - Project mission and philosophy
+  - Architecture overview (skills vs agents)
+  - Design principles and evolution roadmap
+  - Community guidelines and acknowledgments
+- **docs(readme)**: Update README with new skills and agents
+- **docs(changelog)**: Enhanced changelog with detailed version history
 
 ## [1.0.0] - 2025-01-03
 
