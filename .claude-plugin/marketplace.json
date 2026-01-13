@@ -57,6 +57,22 @@
         "markdown"
       ],
       "skills": ["./ideate-pm"]
+    },
+    {
+      "name": "feature-development-workflow",
+      "description": "Systematic feature development following a 5-phase workflow: Discovery → Exploration → Documentation → Implementation → Review",
+      "source": "./",
+      "version": "1.0.0",
+      "category": "development",
+      "keywords": [
+        "feature-development",
+        "workflow",
+        "documentation",
+        "planning",
+        "implementation",
+        "multi-model"
+      ],
+      "skills": ["./feature-development-workflow"]
     }
   ]
 }
