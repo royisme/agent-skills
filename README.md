@@ -140,6 +140,32 @@ Cloudflare Guide provides quick access to official Cloudflare documentation and 
 
 ---
 
+### [feature-development-workflow](./feature-development-workflow)
+
+**Systematic feature development following a 5-phase workflow: Discovery → Exploration → Documentation → Implementation → Review.**
+
+Feature Development Workflow provides a structured approach to feature development that emphasizes documentation-first methodology, progressive context management, and systematic implementation. The workflow uses multiple specialized agents with appropriate models for different tasks.
+
+**Key Features:**
+- 🔄 5-phase systematic approach (Discovery, Exploration, Documentation, Implementation, Review)
+- 🤖 Multi-model agents: Opus for deep product thinking, Haiku for fast exploration, Sonnet for architecture
+- 📋 Progress persistence with automatic resume capability for interrupted work
+- 📄 Documentation-first methodology with spec documents created before code
+- 🧠 Fork context management preventing main session pollution
+- ✅ Built-in verification and quality checks throughout the process
+
+**Use when:**
+- Implementing new features or adding functionality
+- Refactoring modules or upgrading APIs
+- Performing complex multi-file bug fixes
+- Making architectural changes to the codebase
+- Migrating databases or performing major system changes
+- Following systematic development workflows
+
+[→ Learn more about feature-development-workflow](./feature-development-workflow/SKILL.md)
+
+---
+
 ## Available Agents
 
 ### [python-coder](./agents/python-coder.md)

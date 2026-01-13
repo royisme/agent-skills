@@ -1,6 +1,16 @@
 ---
 name: browser
 description: Automate Chrome via Puppeteer to browse, navigate, scrape, and capture web pages across platforms.
+version: 1.0.0
+context: fork
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+  - Task
 ---
 
 # Browser Skill

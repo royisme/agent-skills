@@ -1,6 +1,16 @@
 ---
 name: context-keeper
 description: Maintains project context through progressive disclosure and enforced documentation. This skill should be used when starting work on a new project to initialize context documentation, or continuously during development to maintain up-to-date project structure and coding conventions. Triggers on project initialization, file modifications, or when the agent needs to understand project architecture.
+version: 1.0.0
+context: fork
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+  - Task
 ---
 
 # Context Keeper

@@ -1,6 +1,16 @@
 ---
 name: cloudflare-guide
 description: Use this skill when the user asks about "Cloudflare Workers", "Cloudflare Pages", "Wrangler configuration", "R2", "D1", "KV", "Durable Objects", "Workers AI", or any Cloudflare deployment/development question. It uses the cloudflare-docs-fetcher agent to fetch official documentation, keeping the main context clean.
+version: 1.0.0
+context: fork
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+  - Task
 ---
 
 # Cloudflare Development Assistant
