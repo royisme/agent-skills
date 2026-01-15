@@ -2,13 +2,13 @@
   "name": "claude-skills-collection",
   "owner": {
     "name": "royzhu",
-    "email": "your-email@example.com"
+    "email": "rzhu84.ca@gmail.com"
   },
   "metadata": {
     "description": "Collection of Claude Code skills for browser automation, context management, and product requirements",
-    "version": "1.0.0",
-    "homepage": "https://github.com/YOUR_USERNAME/claude-skills",
-    "repository": "https://github.com/YOUR_USERNAME/claude-skills",
+    "version": "1.0.1",
+    "homepage": "https://github.com/royisme/agent-skills",
+    "repository": "https://github.com/royisme/agent-skills",
     "license": "MIT"
   },
   "plugins": [
@@ -62,7 +62,7 @@
       "name": "feature-development-workflow",
       "description": "Systematic feature development following a 5-phase workflow: Discovery → Exploration → Documentation → Implementation → Review",
       "source": "./",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "category": "development",
       "keywords": [
         "feature-development",
