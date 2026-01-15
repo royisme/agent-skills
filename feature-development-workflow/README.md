@@ -76,6 +76,7 @@ The skill creates spec files in `.works/spec/{feature-name}/`:
 | `codebase-explorer` | Haiku | Fast codebase exploration |
 | `architect` | Sonnet | Architecture design |
 | `reviewer` | Sonnet | Code quality review |
+| `react-coder` | Sonnet | Code writer |
 
 ## Scripts
 
