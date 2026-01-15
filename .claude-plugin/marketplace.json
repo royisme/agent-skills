@@ -1,5 +1,5 @@
 {
-  "name": "claude-skills-collection",
+  "name": "roy-dev-skills",
   "owner": {
     "name": "royzhu",
     "email": "rzhu84.ca@gmail.com"
@@ -15,65 +15,46 @@
     {
       "name": "auto-browser",
       "description": "Automate Chrome via Puppeteer to browse, navigate, scrape and capture web pages",
-      "source": "./",
       "version": "1.0.0",
-      "category": "automation",
-      "keywords": [
-        "browser",
-        "puppeteer",
-        "web-scraping",
-        "automation",
-        "chrome",
-        "screenshot"
-      ],
-      "skills": ["./auto-browser"]
+      "author": {
+        "name": "royzhu",
+        "email": "rzhu84.ca@gmail.com"
+      },
+      "source": "./auto-browser",
+      "category": "automation"
     },
     {
       "name": "context-keeper",
       "description": "Maintains project context through progressive disclosure and enforced documentation",
-      "source": "./",
       "version": "1.0.0",
-      "category": "developer-tools",
-      "keywords": [
-        "context",
-        "documentation",
-        "project-management",
-        "tech-stack",
-        "conventions"
-      ],
-      "skills": ["./context-keeper"]
+      "author": {
+        "name": "royzhu",
+        "email": "rzhu84.ca@gmail.com"
+      },
+      "source": "./context-keeper",
+      "category": "developer-tools"
     },
     {
       "name": "ideate-pm",
       "description": "Product Requirements Manager for ideation and product management",
-      "source": "./",
       "version": "1.0.0",
-      "category": "productivity",
-      "keywords": [
-        "product-management",
-        "requirements",
-        "ideation",
-        "sqlite",
-        "markdown"
-      ],
-      "skills": ["./ideate-pm"]
+      "author": {
+        "name": "royzhu",
+        "email": "rzhu84.ca@gmail.com"
+      },
+      "source": "./ideate-pm",
+      "category": "productivity"
     },
     {
       "name": "feature-development-workflow",
       "description": "Systematic feature development following a 5-phase workflow: Discovery → Exploration → Documentation → Implementation → Review",
-      "source": "./",
       "version": "1.0.1",
-      "category": "development",
-      "keywords": [
-        "feature-development",
-        "workflow",
-        "documentation",
-        "planning",
-        "implementation",
-        "multi-model"
-      ],
-      "skills": ["./feature-development-workflow"],
-      "agents": ["./agents"]
+      "author": {
+        "name": "royzhu",
+        "email": "rzhu84.ca@gmail.com"
+      },
+      "source": "./feature-development-workflow",
+      "category": "development"
     }
   ]
 }
