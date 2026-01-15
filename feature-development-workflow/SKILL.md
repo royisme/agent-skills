@@ -7,7 +7,7 @@ description: >-
   bugfixes, architectural changes, or when user mentions "feature workflow".
   Provides a 5-phase systematic approach: Discovery -> Exploration ->
   Documentation -> Implementation -> Review.
-version: 1.0.0
+version: 1.0.1
 context: fork
 allowed-tools:
   - Read
@@ -105,6 +105,15 @@ Initialize with: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/init.sh {feature-name}`
 2. Read all key files identified by agents
 3. Present comprehensive findings summary
 4. Update progress.md
+5. if the `ast-grep` tool is exsiting, please use it. here is the Command line usage example :
+   ```bash
+      ## ast-grep has following form.
+      ast-grep --pattern 'var code = $PATTERN' --rewrite 'let code = new $PATTERN' --lang ts
+      ## Example : Rewrite code in null coalescing operator
+      ast-grep -p '$A && $A()' -l ts -r '$A?.()'
+      ## Example : Rewrite Zodios
+      ast-grep -p 'new Zodios($URL,  $CONF as const,)' -l ts -r 'new Zodios($URL, $CONF)' -i
+   ```
 
 ---
 
