@@ -7,7 +7,7 @@ description: >-
   bugfixes, architectural changes, or when user mentions "feature workflow".
   Provides a 5-phase systematic approach: Discovery -> Exploration ->
   Documentation -> Implementation -> Review.
-version: 1.0.1
+version: 1.0.2
 context: fork
 allowed-tools:
   - Read
@@ -217,6 +217,8 @@ When resuming an interrupted session:
 | `codebase-explorer` | Haiku | Fast codebase exploration |
 | `architect` | Sonnet | Architecture design, implementation blueprints |
 | `reviewer` | Sonnet | Code quality review |
+| `react-coder` | Sonnet | React Code developer  |
+
 
 ## Scripts
 
