@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Collection of Claude Code skills for browser automation, context management, and product requirements",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "homepage": "https://github.com/royisme/agent-skills",
     "repository": "https://github.com/royisme/agent-skills",
     "license": "MIT"
@@ -72,7 +72,8 @@
         "implementation",
         "multi-model"
       ],
-      "skills": ["./feature-development-workflow"]
+      "skills": ["./feature-development-workflow"],
+      "agents": ["./agents"]
     }
   ]
 }
