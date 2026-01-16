@@ -52,16 +52,14 @@
       "description": "Systematic feature development following a 5-phase workflow: Discovery → Exploration → Documentation → Implementation → Review",
       "category": "development",
       "strict": false,
-      "source": "./plugins/smart-dev",
-      "commands": "./plugins/smart-dev/skills/smart-dev/SKILL.md"
+      "source": "./plugins/smart-dev"
     },
     {
       "name": "pythonic",
       "version": "1.0.1",
       "category": "development",
       "strict": false,
-      "source": "./plugins/pythonice",
-      "commands": "./plugins/pythonic/skills/pythonic/SKILL.md"
+      "source": "./plugins/pythonice"
     }
   ]
 }
