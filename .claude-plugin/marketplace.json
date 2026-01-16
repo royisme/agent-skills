@@ -1,0 +1,30 @@
+{
+  "name": "roy-agent-skills",
+  "version": "1.0.4",
+  "description": "Collection of Claude Code skills for browser automation, context management, product requirements, and systematic feature development",
+  "owner": {
+    "name": "royzhu",
+    "email": "rzhu84.ca@gmail.com"
+  },
+  "metadata": {
+    "description": "Collection of Claude Code skills for browser automation, context management, and product requirements",
+    "version": "1.0.4",
+    "homepage": "https://github.com/royisme/agent-skills",
+    "repository": "https://github.com/royisme/agent-skills",
+    "license": "MIT"
+  },
+  "plugins": [
+    {
+      "name": "dev-skills",
+      "description": "Easily create custom hooks to prevent unwanted behaviors by analyzing conversation patterns or from explicit instructions. Define rules via simple markdown files.",
+      "version": "1.1.0",
+      "author": {
+        "name": "royzhu",
+        "email": "rzhu84.ca@gmail.com"
+      },
+      "source": "./plugins",
+      "category": "development",
+      "strict": false
+    }
+  ]
+}
