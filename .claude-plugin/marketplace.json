@@ -61,8 +61,7 @@
       },
       "source": "./feature-dev",
       "category": "development",
-      "strict": false,
-      "commands": ["./feature-dev/SKILL.md"]
+      "strict": false
     },
     {
       "name": "friendly-python",
