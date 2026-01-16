@@ -13,16 +13,56 @@
   },
   "plugins": [
     {
-      "name": "dev-skills",
-      "description": "Easily create custom hooks to prevent unwanted behaviors by analyzing conversation patterns or from explicit instructions. Define rules via simple markdown files.",
-      "version": "1.1.1",
-      "author": {
-        "name": "royzhu",
-        "email": "rzhu84.ca@gmail.com"
-      },
-      "source": "./plugins",
+      "name": "auto-browser",
+      "description": "Automate Chrome via Puppeteer to browse, navigate, scrape and capture web pages",
+      "version": "1.0.0",
+      "category": "automation",
+      "strict": false,
+      "source": "./plugins/auto-browser"
+    },
+    {
+      "name": "context-keeper",
+      "version": "1.0.1",
+
+      "description": "Maintains project context through progressive disclosure and enforced documentation",
+      "category": "developer-tools",
+      "strict": false,
+      "source": "./plugins/context-keeper"
+    },
+    {
+      "name": "cloudflare-guide",
+      "version": "1.0.1",
+
+      "description": "Help developer to create any services on cloudflare",
+      "category": "developer-tools",
+      "strict": false,
+      "source": "./plugins/cloudflare-guide"
+    },
+    {
+      "name": "ideate-pm",
+      "version": "1.0.1",
+
+      "description": "Product Requirements Manager for ideation and product management",
+      "category": "productivity",
+      "strict": false,
+      "source": "./plugins/ideate-pm"
+    },
+    {
+      "name": "smart-dev",
+      "version": "1.0.1",
+
+      "description": "Systematic feature development following a 5-phase workflow: Discovery → Exploration → Documentation → Implementation → Review",
       "category": "development",
-      "strict": false
+      "strict": false,
+      "source": "./plugins/smart-dev",
+      "commands": "./plugins/smart-dev/skills/smart-dev/SKILL.md"
+    },
+    {
+      "name": "pythonic",
+      "version": "1.0.1",
+      "category": "development",
+      "strict": false,
+      "commands": "./plugins/pythonic/skills/pythonic/SKILL.md"
     }
   ]
 }

@@ -20,7 +20,7 @@ description: >-
   Agent provides comprehensive implementation blueprint
   </commentary>
   </example>
-model: sonnet
+model: opus
 color: green
 tools:
   - Glob
