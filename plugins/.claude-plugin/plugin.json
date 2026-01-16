@@ -1,7 +1,7 @@
 {
   "name": "dev-skills",
   "description": "Collection of Claude Code skills for browser automation, context management, and product requirements",
-  "version": "1.0.1",
+  "version": "1.1.1",
   "author": {
     "name": "royzhu",
     "email": "rzhu84.ca@gmail.com"
