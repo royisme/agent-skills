@@ -48,7 +48,7 @@
     },
     {
       "name": "smart-dev",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "description": "Systematic feature development following a 5-phase workflow: Discovery → Exploration → Documentation → Implementation → Review",
       "category": "development",
       "strict": false,
