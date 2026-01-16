@@ -261,7 +261,7 @@ Install all skills in this collection using Claude Code's plugin system:
 
 ```bash
 # Add this marketplace to your local marketplaces
-git clone https://github.com/YOUR_USERNAME/claude-skills.git ~/.claude/plugins/marketplaces/claude-skills-collection
+git clone https://github.com/YOUR_USERNAME/claude-skills.git ~/.claude/plugins/marketplaces/roy-dev-skills
 
 # Install individual skills
 claude plugin install auto-browser
@@ -312,7 +312,7 @@ Initialize documentation for your project:
 
 ```bash
 # If installed via plugin
-python ~/.claude/plugins/cache/claude-skills-collection/context-keeper/1.0.0/scripts/scan_project.py /path/to/your/project
+python ~/.claude/plugins/cache/roy-dev-skills/context-keeper/1.0.0/scripts/scan_project.py /path/to/your/project
 
 # If using local clone
 python ~/software/claude-skills/context-keeper/scripts/scan_project.py /path/to/your/project
