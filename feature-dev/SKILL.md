@@ -1,5 +1,5 @@
 ---
-name: feature-development-workflow
+name: feature-dev
 description: >-
   This skill should be used when the user asks to "implement a feature",
   "add a new feature", "develop feature", "refactor module", "upgrade API",
@@ -7,7 +7,7 @@ description: >-
   bugfixes, architectural changes, or when user mentions "feature workflow".
   Provides a 5-phase systematic approach: Discovery -> Exploration ->
   Documentation -> Implementation -> Review.
-version: 1.0.2
+version: 1.0.4
 context: fork
 allowed-tools:
   - Read

@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Collection of Claude Code skills for browser automation, context management, and product requirements",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "homepage": "https://github.com/royisme/agent-skills",
     "repository": "https://github.com/royisme/agent-skills",
     "license": "MIT"
@@ -15,24 +15,28 @@
     {
       "name": "auto-browser",
       "description": "Automate Chrome via Puppeteer to browse, navigate, scrape and capture web pages",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
         "name": "royzhu",
         "email": "rzhu84.ca@gmail.com"
       },
       "source": "./auto-browser",
-      "category": "automation"
+      "category": "automation",
+      "strict": false,
+      "commands": "./auto-browser/SKILL.md"
     },
     {
       "name": "context-keeper",
       "description": "Maintains project context through progressive disclosure and enforced documentation",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
         "name": "royzhu",
         "email": "rzhu84.ca@gmail.com"
       },
       "source": "./context-keeper",
-      "category": "developer-tools"
+      "category": "developer-tools",
+      "strict": false,
+      "commands": "./context-keeper/SKILL.md"
     },
     {
       "name": "ideate-pm",
@@ -43,18 +47,35 @@
         "email": "rzhu84.ca@gmail.com"
       },
       "source": "./ideate-pm",
-      "category": "productivity"
+      "category": "productivity",
+      "strict": false,
+      "commands": "./ideate-pm/SKILL.md"
     },
     {
-      "name": "feature-development-workflow",
-      "description": "Systematic feature development following a 5-phase workflow: Discovery → Exploration → Documentation → Implementation → Review",
+      "name": "feature-dev",
+      "description": "Systematic feature development workflow",
+      "version": "1.0.4",
+      "author": {
+        "name": "royzhu",
+        "email": "rzhu84.ca@gmail.com"
+      },
+      "source": "./feature-dev",
+      "category": "development",
+      "strict": false,
+      "commands": "./feature-dev/SKILL.md"
+    },
+    {
+      "name": "friendly-python",
+      "description": "Python coding standards and patterns for writing user-friendly and maintainer-friendly code",
       "version": "1.0.1",
       "author": {
         "name": "royzhu",
         "email": "rzhu84.ca@gmail.com"
       },
-      "source": "./feature-development-workflow",
-      "category": "development"
+      "source": "./friendly-python",
+      "category": "development",
+      "strict": false,
+      "commands": "./friendly-python/SKILL.md"
     }
   ]
 }
