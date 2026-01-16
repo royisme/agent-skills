@@ -61,6 +61,7 @@
       },
       "source": "./feature-dev",
       "category": "development",
+      "agents": ["./agents/react-coder.md"],
       "strict": false
     },
     {
