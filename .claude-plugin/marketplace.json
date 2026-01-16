@@ -23,7 +23,7 @@
       "source": "./auto-browser",
       "category": "automation",
       "strict": false,
-      "commands": "./auto-browser/SKILL.md"
+      "commands": ["./auto-browser/SKILL.md"]
     },
     {
       "name": "context-keeper",
@@ -36,7 +36,7 @@
       "source": "./context-keeper",
       "category": "developer-tools",
       "strict": false,
-      "commands": "./context-keeper/SKILL.md"
+      "commands": ["./context-keeper/SKILL.md"]
     },
     {
       "name": "ideate-pm",
@@ -49,7 +49,7 @@
       "source": "./ideate-pm",
       "category": "productivity",
       "strict": false,
-      "commands": "./ideate-pm/SKILL.md"
+      "commands": ["./ideate-pm/SKILL.md"]
     },
     {
       "name": "feature-dev",
@@ -62,7 +62,7 @@
       "source": "./feature-dev",
       "category": "development",
       "strict": false,
-      "commands": "./feature-dev/SKILL.md"
+      "commands": ["./feature-dev/SKILL.md"]
     },
     {
       "name": "friendly-python",
@@ -75,7 +75,7 @@
       "source": "./friendly-python",
       "category": "development",
       "strict": false,
-      "commands": "./friendly-python/SKILL.md"
+      "commands": ["./friendly-python/SKILL.md"]
     }
   ]
 }
