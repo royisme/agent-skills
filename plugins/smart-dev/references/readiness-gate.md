@@ -91,7 +91,7 @@ Phase 3c (Readiness Gate) is a critical quality checkpoint that prevents impleme
    └─ User decision:
        ├─ Accept ──────> Lock spec, proceed to Phase 4
        └─ Reject ──────> Output Stuck Report, status=blocked
-```
+```text
 
 ## Question Budget
 
@@ -126,7 +126,7 @@ Phase 3c (Readiness Gate) is a critical quality checkpoint that prevents impleme
 ## Acceptance
 [ ] User accepts assumptions (allows Phase 4)
 [ ] User rejects (requires more info or cancels feature)
-```
+```text
 
 **User Choice** (via AskUserQuestion):
 1. **Accept assumptions**: AI creates spec.lock and proceeds to implementation
@@ -158,7 +158,7 @@ Phase 3c (Readiness Gate) is a critical quality checkpoint that prevents impleme
 Please provide answers to "Information Needed" section, then:
 1. Update contracts.md and/or tasks.md with missing info
 2. Re-run readiness gate: bun run scripts/score-spec.ts --feature {feature-name}
-```
+```text
 
 **State**: `status: blocked` in progress.md (stops workflow, user must intervene).
 
@@ -204,7 +204,7 @@ bun run plugins/smart-dev/scripts/score-spec.ts \
 # Exit codes
 # 0 = score >= threshold (pass)
 # 1 = score < threshold (fail)
-```
+```text
 
 **Output**:
 - Console: Breakdown, penalties, gaps
@@ -217,7 +217,7 @@ bun run plugins/smart-dev/scripts/score-spec.ts \
   "description": "No checklist items found in tasks.md",
   "blocking": true
 }
-```
+```text
 
 ### Track B: Semantic Check
 
@@ -229,7 +229,7 @@ ANTHROPIC_API_KEY=sk-ant-xxx bun run plugins/smart-dev/scripts/check-semantic.ts
 # Exit codes
 # 0 = semantic_ok: true (pass)
 # 1 = semantic_ok: false (fail)
-```
+```text
 
 **Cache**: Results cached for 5 minutes (avoids redundant API calls).
 
@@ -243,7 +243,7 @@ ANTHROPIC_API_KEY=sk-ant-xxx bun run plugins/smart-dev/scripts/check-semantic.ts
   "claim": "Goal is unambiguous and measurable",
   "citation": "Implement JWT-based auth with <exact quote from spec>"
 }
-```
+```text
 
 ## Gate Pass Actions
 
@@ -281,7 +281,7 @@ When gate passes (both tracks):
   "description": "No regression test command specified",
   "blocking": true
 }
-```
+```text
 
 **Fix**: Add to contracts.md or tasks.md:
 ```markdown
@@ -290,10 +290,10 @@ When gate passes (both tracks):
 Run tests:
 ```bash
 bun run test
-```
+```text
 
 Expected: All auth-related tests pass, coverage >= 80%
-```
+```text
 
 ### Scenario 2: Ambiguous Goal
 
@@ -306,7 +306,7 @@ Expected: All auth-related tests pass, coverage >= 80%
 ## Goal
 
 Improve API response time from current 800ms (p95) to 200ms (p95) for /api/users endpoint.
-```
+```text
 
 ### Scenario 3: Implicit Dependencies
 
@@ -320,7 +320,7 @@ Improve API response time from current 800ms (p95) to 200ms (p95) for /api/users
 
 - PostgreSQL 14+ (requires transaction support for atomic operations)
 - Redis 6+ (for rate limiting)
-```
+```text
 
 ### Scenario 4: No Error Handling
 
@@ -333,7 +333,7 @@ Improve API response time from current 800ms (p95) to 200ms (p95) for /api/users
   "description": "Error handling not specified",
   "blocking": false
 }
-```
+```text
 
 **Fix**: Add error responses to contracts.md:
 ```markdown
@@ -344,7 +344,7 @@ Improve API response time from current 800ms (p95) to 200ms (p95) for /api/users
 | 400 | INVALID_INPUT | Missing required field |
 | 401 | UNAUTHORIZED | Invalid credentials |
 | 500 | SERVER_ERROR | Database connection failed |
-```
+```text
 
 ## Best Practices
 
@@ -395,7 +395,7 @@ cat .works/spec/{feature-name}/semantic-check.json | jq '.ok'
 
 # Count question rounds used
 grep "^question_round:" .works/spec/{feature-name}/progress.md
-```
+```text
 
 ### Debug gate failures:
 
@@ -408,7 +408,7 @@ cat .works/spec/{feature-name}/semantic-check.json | jq '.gaps[]'
 
 # View Q&A history
 cat .works/spec/{feature-name}/qa.md
-```
+```text
 
 ### Manual gate re-run:
 
@@ -419,7 +419,7 @@ bun run plugins/smart-dev/scripts/score-spec.ts --feature {feature-name}
 # Re-run Track B (invalidates cache)
 rm .works/spec/{feature-name}/semantic-check.json
 ANTHROPIC_API_KEY=xxx bun run plugins/smart-dev/scripts/check-semantic.ts --feature {feature-name}
-```
+```text
 
 ## Troubleshooting
 
