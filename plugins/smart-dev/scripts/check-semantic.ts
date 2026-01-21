@@ -147,7 +147,16 @@ Output ONLY the JSON object.`;
 
 console.log('Calling Claude API for semantic check...');
 
-// Call Claude API
+/**
+ * Perform a semantic sufficiency check by calling the Claude API and persist the structured result.
+ *
+ * Calls the remote Claude API with the prepared prompt, parses the JSON response into a `SemanticCheck`
+ * object, writes the result to `outputPath`, prints a summary (including evidence and gaps) to stdout,
+ * and exits the process with code 0 when the check passes or 1 when it fails.
+ *
+ * On any API, network, or parse error the function writes a failure `SemanticCheck` (with `ok: false`)
+ * to `outputPath`, logs the error, and exits the process with code 1.
+ */
 async function checkSemantic() {
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
