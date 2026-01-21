@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Collection of Claude Code skills for browser automation, context management, and product requirements",
-    "version": "1.0.6",
+    "version": "2.0.0",
     "homepage": "https://github.com/royisme/agent-skills",
     "repository": "https://github.com/royisme/agent-skills",
     "license": "MIT"
@@ -48,8 +48,8 @@
     },
     {
       "name": "smart-dev",
-      "version": "1.0.2",
-      "description": "Systematic feature development following a 5-phase workflow: Discovery → Exploration → Documentation → Implementation → Review",
+      "version": "2.0.0",
+      "description": "Systematic feature development with dual-mode execution (dev/loop), 95% readiness gating, and iteration control. Supports /smart-dev:dev, /smart-dev:loop, /smart-dev:cancel commands.",
       "category": "development",
       "strict": false,
       "source": "./plugins/smart-dev"
