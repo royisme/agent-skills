@@ -119,7 +119,14 @@
       {
         "from": "blocked",
         "to": "collecting",
-        "condition": "user_provided_info == true"
+        "condition": "user_provided_info == true && mode == 'loop'",
+        "description": "Loop mode: return to spec collection after user provides missing info"
+      },
+      {
+        "from": "blocked",
+        "to": "implementing",
+        "condition": "user_provided_info == true && mode == 'dev' && spec_locked == true",
+        "description": "Dev mode: return to implementation after resolving blocking issue"
       },
       {
         "from": "*",
@@ -163,6 +170,7 @@
       "confidence_threshold",
       "readiness_score",
       "semantic_ok",
+      "semantic_skipped",
       "spec_locked",
       "question_round",
       "question_budget",
@@ -185,6 +193,7 @@
       "confidence_threshold": "integer",
       "readiness_score": "integer",
       "semantic_ok": "boolean",
+      "semantic_skipped": "boolean",
       "spec_locked": "boolean",
       "question_round": "integer",
       "question_budget": "integer",

@@ -47,6 +47,7 @@ completion_promise: "DONE"
 confidence_threshold: 95
 readiness_score: 0
 semantic_ok: false
+semantic_skipped: false
 spec_locked: false
 question_round: 0
 question_budget: 2

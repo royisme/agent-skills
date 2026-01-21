@@ -291,10 +291,12 @@
                   "fields": {
                     "spec_locked": true,
                     "readiness_score": "{score}",
-                    "semantic_ok": true,
+                    "semantic_ok": "{semantic_ok}",
+                    "semantic_skipped": "{semantic_skipped}",
                     "phase": 4,
                     "phase_name": "implementation"
-                  }
+                  },
+                  "note": "Use actual values from semantic-check.json: ok field for semantic_ok, skipped field for semantic_skipped"
                 }
               ]
             }
