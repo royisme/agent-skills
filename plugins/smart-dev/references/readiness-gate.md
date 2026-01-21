@@ -64,7 +64,7 @@ Phase 3c (Readiness Gate) is a critical quality checkpoint that prevents impleme
 
 ## Gate Execution Flow
 
-```
+```text
 1. Run Track A (score-spec.ts)
    ├─ Score >= 95? ──┐
    └─ Score < 95? ───┤
@@ -288,7 +288,7 @@ When gate passes (both tracks):
 ## Verification
 
 Run tests:
-```
+```bash
 bun run test
 ```
 

@@ -20,12 +20,12 @@ Cancel an active loop-mode feature development.
 ## Usage
 
 ### Cancel specific feature:
-```
+```bash
 /smart-dev:cancel {feature-name}
 ```
 
 ### List active loop features:
-```
+```bash
 /smart-dev:cancel
 ```
 (without feature name)
@@ -49,7 +49,7 @@ Cancel an active loop-mode feature development.
    ```
 
 3. **Output confirmation**:
-   ```
+   ```text
    ✓ Feature {feature-name} canceled
    ```
 
@@ -74,7 +74,7 @@ Cancel an active loop-mode feature development.
    ```
 
 2. **Prompt user to specify**:
-   ```
+   ```text
    Active loop features:
    - feature-name-1 (iteration 5/20, status: implementing)
    - feature-name-2 (iteration 2/20, status: collecting)
@@ -106,7 +106,7 @@ Cancel an active loop-mode feature development.
    ```
 
 4. **Restart loop**:
-   ```
+   ```bash
    /smart-dev:loop "{feature description}"
    ```
    (It will detect existing workspace and resume)
@@ -134,7 +134,7 @@ Cancel an active loop-mode feature development.
 
 ## State Transition
 
-```
+```text
 Any loop status (collecting/implementing/fixing/blocked)
          |
          | [/smart-dev:cancel]
