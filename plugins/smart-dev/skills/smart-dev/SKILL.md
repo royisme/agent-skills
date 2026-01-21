@@ -51,6 +51,10 @@ Phase 1: Discovery     ->  Phase 2: Exploration  ->  Phase 3: Documentation
    [GATE: confirm]           [parallel agents]         [GATE: approve]
                                                              |
                                                              v
+                              Phase 3c: Readiness Gate (NEW - 95% check)
+                                 (structural + semantic scoring)
+                                         |
+                                         v
                               Phase 4: Implementation  <-  Phase 3b: Tasks
                                  (incremental, verified)    (breakdown)
                                          |
@@ -64,11 +68,17 @@ All artifacts live under `.works/spec/{feature-name}/` (gitignored):
 
 ```
 .works/spec/{feature-name}/
-├── progress.md        # Progress tracking (YAML frontmatter + markdown)
-├── README.md          # Index + core decisions
-├── contracts.md       # Data contracts (input/output/API)
-├── tasks.md           # Task breakdown with status
-└── PR.md              # PR description template
+├── progress.md          # Progress tracking (YAML frontmatter + markdown)
+├── README.md            # Index + core decisions
+├── contracts.md         # Data contracts (input/output/API)
+├── tasks.md             # Task breakdown with status
+├── PR.md                # PR description template
+├── qa.md                # Q&A log (Phase 3c question rounds)
+├── score.json           # Readiness scoring results (Track A)
+├── semantic-check.json  # Semantic check results (Track B)
+├── verification.log     # Test/build output history
+├── assumptions.md       # Assumptions pack (if question budget exhausted)
+└── spec.lock            # Spec locked marker (created when gate passes)
 ```
 
 Initialize with: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/init.sh {feature-name}`
@@ -135,6 +145,129 @@ Initialize with: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/init.sh {feature-name}`
 3. Each task: Goal, Size (S/M/L), Files, Acceptance criteria
 
 **GATE**: User confirms task list
+
+---
+
+## Phase 3c: Readiness Gate (95% Confidence)
+
+**Goal**: Verify specification completeness before implementation
+
+**CRITICAL**: Do not proceed to implementation until this gate passes.
+
+### Dual-Track Scoring
+
+The readiness gate uses two complementary checks:
+
+1. **Track A: Structural Scoring** (Deterministic)
+   - Checks for required sections, type definitions, test commands
+   - Scores 0-100 based on concrete rubric
+   - Fast, consistent, no API calls needed
+
+2. **Track B: Semantic Sufficiency** (LLM-based)
+   - Checks for ambiguity, hidden assumptions, logical gaps
+   - Requires evidence citations from spec
+   - Uses Claude API (Haiku model)
+
+### Execution Steps
+
+**1. Run structural scoring**:
+```bash
+bun run ${CLAUDE_PLUGIN_ROOT}/scripts/score-spec.ts \
+  --feature {feature-name} \
+  --threshold 95
+```
+Result written to `.works/spec/{feature}/score.json`
+
+**2. Run semantic check**:
+```bash
+ANTHROPIC_API_KEY=xxx bun run ${CLAUDE_PLUGIN_ROOT}/scripts/check-semantic.ts \
+  --feature {feature-name}
+```
+Result written to `.works/spec/{feature}/semantic-check.json`
+
+**3. Evaluate gate condition**:
+- `readiness_score >= 95` AND `semantic_ok == true`
+- If **PASS**: Create `spec.lock` file, update progress, proceed to Phase 4
+- If **FAIL**: Go to step 4
+
+**4. Information Gathering (if gate fails)**:
+
+a. Generate blocking questions list:
+   - Combine gaps from `score.json` + `semantic-check.json`
+   - Filter to blocking items only
+   - Max 3-5 questions per round
+
+b. Check question budget:
+   - If `question_round < question_budget` (default: 2):
+     - Use AskUserQuestion to ask targeted questions
+     - Record Q&A in `qa.md`
+     - Update `question_round` in progress.md
+     - Re-run readiness gate (steps 1-3)
+   - If budget exhausted: Go to step 5
+
+**5. Assumptions Pack (budget exhausted)**:
+
+Write to `.works/spec/{feature}/assumptions.md`:
+```markdown
+## Unresolved Gaps
+[List blocking gaps from score.json + semantic-check.json]
+
+## Proposed Assumptions
+- Gap: [description]
+  Assumption: [what we'll assume]
+  Risk: [what could go wrong]
+
+## Acceptance
+[ ] User accepts assumptions (allows Phase 4)
+[ ] User rejects (requires more info or cancels feature)
+```
+
+Use AskUserQuestion with 2 options:
+- "Accept assumptions and proceed (Recommended if risks are acceptable)"
+- "Provide more information (will ask targeted questions)"
+
+**If accepted**: Mark `assumptions_accepted: true`, create `spec.lock`, proceed to Phase 4
+**If rejected**: Output Stuck Report and mark `status: blocked`
+
+**6. Stuck Report format** (if assumptions rejected):
+```markdown
+# Feature Blocked: {feature-name}
+
+## Blocking Gaps
+[List from score.json + semantic-check.json]
+
+## Information Needed
+[Specific questions that must be answered]
+
+## Attempts Made
+- Question rounds: {question_round}/{question_budget}
+- Assumptions offered: Yes
+- User response: Rejected assumptions
+
+## Recommendation
+Please provide answers to "Information Needed" section, then:
+1. Update contracts.md and/or tasks.md with missing info
+2. Re-run readiness gate: bun run scripts/score-spec.ts --feature {feature-name}
+```
+
+### Gate Pass Criteria
+
+- **Track A**: `readiness_score >= confidence_threshold` (default 95)
+- **Track B**: `semantic_ok == true`
+- **Combined**: Both must pass
+
+### Post-Gate Actions
+
+When gate passes:
+1. Create `.works/spec/{feature}/spec.lock` (empty file, timestamp only)
+2. Update progress.md:
+   ```bash
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/update-progress.sh {feature-name} \
+     --set-field spec_locked=true \
+     --set-field phase=4 \
+     --set-field phase_name=implementation
+   ```
+3. Spec files (contracts.md, tasks.md) now protected by write-guard hook
 
 ---
 
@@ -224,10 +357,14 @@ When resuming an interrupted session:
 
 | Script | Purpose |
 |--------|---------|
-| `init.sh` | Initialize feature workspace |
-| `check-progress.sh` | Check for incomplete features (SessionStart) |
-| `update-progress.sh` | Update progress file |
+| `init.sh` | Initialize feature workspace with all required files |
+| `check-progress.sh` | Check for incomplete features (SessionStart hook) |
+| `update-progress.sh` | Update progress file (supports --set-field for loop mode) |
 | `update-changelog.sh` | Update CHANGELOG.md on completion |
+| `score-spec.ts` | Track A: Structural readiness scoring (0-100) |
+| `check-semantic.ts` | Track B: Semantic sufficiency check (requires API key) |
+| `loop-stop.sh` | Stop hook: Controls loop mode iteration lifecycle |
+| `guard-writes.sh` | PreToolUse hook: Prevents spec edits after spec.lock |
 
 ## Additional Resources
 

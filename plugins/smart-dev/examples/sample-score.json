@@ -1,0 +1,24 @@
+{
+  "total": 98,
+  "breakdown": {
+    "structure": 25,
+    "testability": 23,
+    "interfaces": 15,
+    "constraints": 15,
+    "verification": 20
+  },
+  "penalties": [
+    {
+      "reason": "Found 1 placeholder(s): TBD",
+      "points": 5
+    }
+  ],
+  "gaps": [
+    {
+      "category": "testability",
+      "description": "Only 4 checklist items found. Ideally should have 5+ for comprehensive coverage.",
+      "blocking": false
+    }
+  ],
+  "last_updated": "2026-01-20T12:00:00.000Z"
+}
