@@ -88,7 +88,13 @@ const result: ScoreResult = {
   last_updated: new Date().toISOString(),
 };
 
-// Helper: Check if content has a section
+/**
+ * Checks whether the markdown content contains any of the specified headings at levels 1–3.
+ *
+ * @param content - The markdown text to search
+ * @param sectionNames - One or more heading names to look for (matched case-insensitively)
+ * @returns `true` if any of the provided heading names appears as an H1–H3 heading in `content`, `false` otherwise
+ */
 function hasSection(content: string, ...sectionNames: string[]): boolean {
   return sectionNames.some(name => {
     const pattern = new RegExp(`^#{1,3}\\s+${name}`, 'mi');
@@ -96,13 +102,24 @@ function hasSection(content: string, ...sectionNames: string[]): boolean {
   });
 }
 
-// Helper: Count matches
+/**
+ * Count the number of occurrences of a regular expression within a string.
+ *
+ * @param content - The text to search
+ * @param pattern - The regular expression to match against `content`
+ * @returns The number of matches found (0 if none)
+ */
 function countMatches(content: string, pattern: RegExp): number {
   const matches = content.match(pattern);
   return matches ? matches.length : 0;
 }
 
-// Helper: Check for placeholder text
+/**
+ * Finds placeholder tokens commonly used to mark incomplete content.
+ *
+ * @param content - The text to scan for placeholder tokens
+ * @returns An array of placeholder tokens found in `content` (e.g., `TBD`, `TODO`, `???`, `[later]`)
+ */
 function hasPlaceholders(content: string): string[] {
   const placeholders = ['TBD', 'TODO', '???', '[later]'];
   const found: string[] = [];
