@@ -1,0 +1,495 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Smart-Dev Phase Definitions",
+  "description": "Defines requirements, outputs, and gates for each workflow phase",
+  "version": "1.0.0",
+
+  "phases": [
+    {
+      "id": 1,
+      "name": "discovery",
+      "display_name": "Discovery",
+      "description": "Transform vague requirements into actionable decisions",
+      "goals": [
+        "Clarify user requirements",
+        "Make key architectural decisions",
+        "Record decisions in README.md"
+      ],
+
+      "agents": {
+        "recommended": ["product-thinker"],
+        "model": "opus",
+        "rationale": "Deep product analysis and UX decisions require strongest model"
+      },
+
+      "actions": [
+        {
+          "order": 1,
+          "action": "initialize_workspace",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/init.sh {feature-name}",
+          "required": true
+        },
+        {
+          "order": 2,
+          "action": "create_progress_tracking",
+          "outputs": ["progress.md"],
+          "required": true
+        },
+        {
+          "order": 3,
+          "action": "ask_clarifying_questions",
+          "format": "numbered (Q1, Q2...)",
+          "max_questions": 10,
+          "required": true
+        },
+        {
+          "order": 4,
+          "action": "record_decisions",
+          "outputs": ["README.md"],
+          "required": true
+        }
+      ],
+
+      "gates": [
+        {
+          "type": "user_confirmation",
+          "description": "Confirm all decisions with user before proceeding",
+          "blocking": true,
+          "tool": "AskUserQuestion"
+        }
+      ],
+
+      "required_outputs": {
+        "files": ["progress.md", "README.md"],
+        "decisions": {
+          "min_count": 1,
+          "format": "Q1, Q2, etc."
+        }
+      },
+
+      "completion_criteria": {
+        "all_files_created": true,
+        "user_confirmed_decisions": true,
+        "progress_updated": true
+      },
+
+      "next_phase": 2
+    },
+
+    {
+      "id": 2,
+      "name": "exploration",
+      "display_name": "Codebase Exploration",
+      "description": "Understand relevant existing code and patterns",
+      "goals": [
+        "Identify similar features",
+        "Understand architecture and patterns",
+        "Map UI patterns and state management"
+      ],
+
+      "agents": {
+        "recommended": ["codebase-explorer"],
+        "model": "haiku",
+        "count": "2-3 parallel",
+        "rationale": "Fast exploration with multiple focused agents"
+      },
+
+      "actions": [
+        {
+          "order": 1,
+          "action": "launch_parallel_agents",
+          "targets": [
+            "Similar features and implementation patterns",
+            "Architecture and abstractions",
+            "UI patterns and state management"
+          ],
+          "required": true
+        },
+        {
+          "order": 2,
+          "action": "read_identified_files",
+          "description": "Read all key files identified by agents",
+          "required": true
+        },
+        {
+          "order": 3,
+          "action": "present_findings_summary",
+          "format": "comprehensive summary",
+          "required": true
+        },
+        {
+          "order": 4,
+          "action": "update_progress",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/update-progress.sh {feature-name} 2 exploration in_progress",
+          "required": true
+        }
+      ],
+
+      "optional_tools": {
+        "ast-grep": {
+          "when_available": true,
+          "example_usage": [
+            "ast-grep --pattern 'var code = $PATTERN' --rewrite 'let code = new $PATTERN' --lang ts",
+            "ast-grep -p '$A && $A()' -l ts -r '$A?.()'"
+          ]
+        }
+      },
+
+      "gates": [],
+
+      "required_outputs": {
+        "findings_summary": true,
+        "identified_patterns": {
+          "min_count": 1
+        }
+      },
+
+      "completion_criteria": {
+        "agents_completed": true,
+        "findings_presented": true,
+        "progress_updated": true
+      },
+
+      "next_phase": 3
+    },
+
+    {
+      "id": 3,
+      "name": "documentation",
+      "display_name": "Documentation & Tasks",
+      "description": "Create spec documents and task breakdown",
+
+      "sub_phases": [
+        {
+          "id": "3a",
+          "name": "documentation",
+          "description": "Write specification documents",
+          "actions": [
+            {
+              "order": 1,
+              "action": "write_contracts",
+              "outputs": ["contracts.md"],
+              "content": ["field definitions", "types", "examples"],
+              "required": true
+            },
+            {
+              "order": 2,
+              "action": "update_readme",
+              "outputs": ["README.md"],
+              "content": ["decisions summary"],
+              "required": true
+            }
+          ],
+          "gates": [
+            {
+              "type": "user_approval",
+              "description": "User approves spec documents",
+              "blocking": true
+            }
+          ]
+        },
+        {
+          "id": "3b",
+          "name": "task_breakdown",
+          "description": "Split feature into atomic tasks",
+          "agents": {
+            "recommended": ["architect"],
+            "model": "sonnet",
+            "rationale": "Implementation blueprint requires balanced reasoning"
+          },
+          "actions": [
+            {
+              "order": 1,
+              "action": "launch_architect_agent",
+              "required": true
+            },
+            {
+              "order": 2,
+              "action": "split_into_tasks",
+              "outputs": ["tasks.md"],
+              "task_format": {
+                "required_fields": ["Goal", "Size", "Files", "Acceptance"],
+                "size_values": ["S", "M", "L"]
+              },
+              "required": true
+            }
+          ],
+          "gates": [
+            {
+              "type": "user_confirmation",
+              "description": "User confirms task list",
+              "blocking": true
+            }
+          ]
+        },
+        {
+          "id": "3c",
+          "name": "readiness_gate",
+          "description": "Verify specification completeness (95% confidence)",
+          "critical": true,
+          "blocking": true,
+
+          "actions": [
+            {
+              "order": 1,
+              "action": "run_structural_scoring",
+              "command": "bun run ${CLAUDE_PLUGIN_ROOT}/scripts/score-spec.ts --feature {feature-name} --threshold {confidence_threshold}",
+              "outputs": ["score.json"],
+              "required": true
+            },
+            {
+              "order": 2,
+              "action": "run_semantic_check",
+              "command": "bun run ${CLAUDE_PLUGIN_ROOT}/scripts/check-semantic.ts --feature {feature-name}",
+              "outputs": ["semantic-check.json"],
+              "optional_if_no_api_key": true,
+              "required": true
+            },
+            {
+              "order": 3,
+              "action": "evaluate_gate_condition",
+              "logic": "readiness_score >= confidence_threshold AND (semantic_ok == true OR skipped == true)",
+              "required": true
+            },
+            {
+              "order": 4,
+              "action": "handle_gate_failure",
+              "when": "gate fails",
+              "sub_actions": [
+                {
+                  "action": "generate_blocking_questions",
+                  "max_questions": 5,
+                  "filter": "blocking gaps only"
+                },
+                {
+                  "action": "check_question_budget",
+                  "if_available": "ask_user_questions_and_retry",
+                  "if_exhausted": "offer_assumptions_pack"
+                },
+                {
+                  "action": "assumptions_pack",
+                  "when": "question_budget exhausted",
+                  "outputs": ["assumptions.md"],
+                  "user_choice": {
+                    "accept": "lock_spec_and_proceed",
+                    "reject": "output_stuck_report_and_block"
+                  }
+                }
+              ]
+            },
+            {
+              "order": 5,
+              "action": "handle_gate_pass",
+              "when": "gate passes",
+              "sub_actions": [
+                {
+                  "action": "create_spec_lock",
+                  "command": "touch .works/spec/{feature-name}/spec.lock"
+                },
+                {
+                  "action": "update_progress",
+                  "fields": {
+                    "spec_locked": true,
+                    "readiness_score": "{score}",
+                    "semantic_ok": true,
+                    "phase": 4,
+                    "phase_name": "implementation"
+                  }
+                }
+              ]
+            }
+          ],
+
+          "gates": [
+            {
+              "type": "readiness_score",
+              "threshold": 95,
+              "dual_track": true,
+              "blocking": true,
+              "config_file": "config/scoring-rules.json"
+            }
+          ],
+
+          "required_outputs": {
+            "files": ["score.json", "semantic-check.json"],
+            "conditional_files": {
+              "assumptions.md": "if question budget exhausted",
+              "spec.lock": "if gate passes"
+            }
+          }
+        }
+      ],
+
+      "completion_criteria": {
+        "all_sub_phases_complete": true,
+        "spec_locked": true,
+        "readiness_score_gte_threshold": true
+      },
+
+      "next_phase": 4
+    },
+
+    {
+      "id": 4,
+      "name": "implementation",
+      "display_name": "Implementation",
+      "description": "Build the feature incrementally",
+      "requires": {
+        "spec_locked": true,
+        "readiness_score": ">=95"
+      },
+
+      "workflow": [
+        {
+          "step": 1,
+          "action": "create_feature_branch",
+          "command": "git checkout -b feat/{feature-name}",
+          "required": true
+        },
+        {
+          "step": 2,
+          "action": "implement_tasks",
+          "for_each_task": {
+            "actions": [
+              {
+                "action": "update_task_status",
+                "status": "in_progress"
+              },
+              {
+                "action": "implement_changes",
+                "follow": "tasks.md specifications"
+              },
+              {
+                "action": "run_verification",
+                "when": "after significant changes",
+                "command": "bun run check && bun run test"
+              },
+              {
+                "action": "update_task_status",
+                "status": "completed"
+              }
+            ]
+          }
+        },
+        {
+          "step": 3,
+          "action": "final_verification",
+          "command": "bun run check && bun run test && bun run build",
+          "log_output": "verification.log",
+          "required": true,
+          "retry": {
+            "max_attempts": 3,
+            "on_failure": "fix and retry"
+          }
+        }
+      ],
+
+      "important_notes": [
+        "DO NOT START WITHOUT USER APPROVAL",
+        "Spec files are locked (cannot edit contracts.md, tasks.md, README.md)",
+        "Write guard hook will block edits to protected files"
+      ],
+
+      "gates": [],
+
+      "required_outputs": {
+        "code_changes": true,
+        "verification_passed": true
+      },
+
+      "completion_criteria": {
+        "all_tasks_completed": true,
+        "verification_passed": true
+      },
+
+      "next_phase": 5
+    },
+
+    {
+      "id": 5,
+      "name": "review",
+      "display_name": "Review & PR",
+      "description": "Ensure quality and submit",
+
+      "agents": {
+        "recommended": ["reviewer"],
+        "model": "sonnet",
+        "rationale": "Code quality review requires balanced analysis"
+      },
+
+      "actions": [
+        {
+          "order": 1,
+          "action": "launch_reviewer_agent",
+          "focus_areas": ["simplicity", "correctness", "conventions"],
+          "required": true
+        },
+        {
+          "order": 2,
+          "action": "present_findings",
+          "tool": "AskUserQuestion",
+          "options": ["fix now", "fix later", "proceed"],
+          "required": true
+        },
+        {
+          "order": 3,
+          "action": "final_verification",
+          "command": "bun run check && bun run test && bun run build",
+          "required": true
+        },
+        {
+          "order": 4,
+          "action": "create_pr",
+          "use": "PR.md template",
+          "command": "gh pr create --title 'feat: {Feature}' --body-file .works/spec/{feature-name}/PR.md",
+          "required": true
+        },
+        {
+          "order": 5,
+          "action": "update_changelog",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/update-changelog.sh",
+          "required": true
+        },
+        {
+          "order": 6,
+          "action": "mark_complete",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/update-progress.sh {feature-name} 5 review completed",
+          "required": true
+        }
+      ],
+
+      "gates": [],
+
+      "required_outputs": {
+        "pr_created": true,
+        "changelog_updated": true,
+        "progress_completed": true
+      },
+
+      "completion_criteria": {
+        "verification_passed": true,
+        "pr_created": true,
+        "progress_status": "completed"
+      },
+
+      "next_phase": null
+    }
+  ],
+
+  "metadata": {
+    "total_phases": 5,
+    "critical_gates": [
+      "Phase 1: User confirmation of decisions",
+      "Phase 3a: User approval of spec documents",
+      "Phase 3b: User confirmation of task list",
+      "Phase 3c: Readiness gate (95% confidence)"
+    ],
+    "output_files": {
+      "phase_1": ["progress.md", "README.md"],
+      "phase_2": ["(exploration findings)"],
+      "phase_3": ["contracts.md", "tasks.md", "score.json", "semantic-check.json", "spec.lock"],
+      "phase_4": ["(code changes)", "verification.log"],
+      "phase_5": ["PR.md", "CHANGELOG.md"]
+    }
+  }
+}
