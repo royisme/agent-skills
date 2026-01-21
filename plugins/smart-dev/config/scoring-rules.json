@@ -1,0 +1,355 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Smart-Dev Scoring Rules",
+  "description": "Defines structural and semantic scoring rules for readiness gate",
+  "version": "1.0.0",
+
+  "track_a": {
+    "name": "Structural Scoring",
+    "description": "Deterministic scoring based on concrete, checkable elements",
+    "total_points": 100,
+    "threshold_default": 95,
+
+    "categories": {
+      "structure": {
+        "points": 25,
+        "description": "Required sections present in specification",
+        "checks": [
+          {
+            "name": "goal_section",
+            "points": 5,
+            "description": "Goal/Purpose/Objective section exists",
+            "regex": "^#{1,3}\\s+(Goal|Purpose|Objective)",
+            "file": "contracts.md",
+            "blocking": true
+          },
+          {
+            "name": "scope_section",
+            "points": 5,
+            "description": "Scope section exists",
+            "regex": "^#{1,3}\\s+(Scope|What.*Included)",
+            "file": "contracts.md",
+            "blocking": true
+          },
+          {
+            "name": "non_goals_section",
+            "points": 5,
+            "description": "Non-Goals/Out of Scope section exists",
+            "regex": "^#{1,3}\\s+(Non-Goals|Out of Scope|Not Included)",
+            "file": "contracts.md",
+            "blocking": false
+          },
+          {
+            "name": "interfaces_section",
+            "points": 5,
+            "description": "Interface/API/Contract definitions exist",
+            "regex": "^#{1,3}\\s+(Interface|API|Endpoint|Input Contract|Output Contract)",
+            "file": "contracts.md",
+            "blocking": true
+          },
+          {
+            "name": "data_model_section",
+            "points": 5,
+            "description": "Data Model/Schema/Type definitions exist",
+            "regex": "^#{1,3}\\s+(Data Model|Schema|Type|Response Structure)",
+            "file": "contracts.md",
+            "blocking": false
+          }
+        ]
+      },
+
+      "testability": {
+        "points": 25,
+        "description": "Acceptance criteria are actionable and verifiable",
+        "checks": [
+          {
+            "name": "checklist_items",
+            "points": 10,
+            "description": "Task checklists present (- [ ] format)",
+            "pattern": "^- \\[ \\]",
+            "file": "tasks.md",
+            "minimum_count": 3,
+            "blocking": true
+          },
+          {
+            "name": "executable_criteria",
+            "points": 15,
+            "description": "Criteria use Given/When/Then or code examples",
+            "patterns": ["given|when|then", "```.*\\n.*\\n```"],
+            "file": "tasks.md",
+            "blocking": false
+          }
+        ]
+      },
+
+      "interfaces": {
+        "points": 15,
+        "description": "API/data contracts have concrete type definitions",
+        "checks": [
+          {
+            "name": "type_definitions",
+            "points": 10,
+            "description": "Type definitions present (TypeScript/JSON schemas)",
+            "patterns": ["```typescript", "```ts", "```json", "interface ", "type ", ":\\s*\\w+"],
+            "file": "contracts.md",
+            "blocking": true
+          },
+          {
+            "name": "error_handling",
+            "points": 5,
+            "description": "Error handling specified",
+            "regex": "^#{1,3}\\s+(Error|Exception|Failure)",
+            "file": "contracts.md",
+            "blocking": false
+          }
+        ]
+      },
+
+      "constraints": {
+        "points": 15,
+        "description": "Boundaries and requirements clearly defined",
+        "checks": [
+          {
+            "name": "non_goals_content",
+            "points": 5,
+            "description": "Non-Goals section has substantial content",
+            "section_regex": "#{1,3}\\s+(Non-Goals|Out of Scope|Not Included)",
+            "min_length": 50,
+            "file": "contracts.md",
+            "blocking": false
+          },
+          {
+            "name": "requirements",
+            "points": 5,
+            "description": "Performance/security/scalability requirements mentioned",
+            "patterns": ["performance", "security", "scalability", "reliability", "latency", "throughput"],
+            "file": "contracts.md",
+            "blocking": false
+          },
+          {
+            "name": "compatibility",
+            "points": 5,
+            "description": "Compatibility/migration/versioning constraints listed",
+            "patterns": ["compatibility", "version", "deprecation", "migration", "backward", "breaking"],
+            "file": "contracts.md",
+            "blocking": false
+          }
+        ]
+      },
+
+      "verification": {
+        "points": 20,
+        "description": "Test and build verification commands specified",
+        "checks": [
+          {
+            "name": "test_command",
+            "points": 10,
+            "description": "Regression test command specified",
+            "patterns": ["`(bun run test|npm test|yarn test|pytest|cargo test|go test)`"],
+            "files": ["tasks.md", "contracts.md"],
+            "blocking": true
+          },
+          {
+            "name": "build_commands",
+            "points": 10,
+            "description": "Build/check commands specified",
+            "patterns": ["`(bun run check|bun run build|npm run build|make|cargo build)`"],
+            "files": ["tasks.md", "contracts.md"],
+            "blocking": false
+          }
+        ]
+      }
+    },
+
+    "penalties": {
+      "placeholders": {
+        "description": "Deduct points for placeholder text",
+        "patterns": ["TBD", "TODO", "???", "[later]"],
+        "points_per_occurrence": -5,
+        "max_deduction": -50
+      },
+      "open_questions": {
+        "description": "Blocking open questions section exists",
+        "section_regex": "#{1,3}\\s+(Open Questions|Questions|Unresolved)",
+        "min_content_length": 20,
+        "points": -20
+      },
+      "no_verification": {
+        "description": "No verification/test plan section",
+        "section_regex": "#{1,3}\\s+(How to Verify|Verification|Testing|Test Plan)",
+        "files": ["contracts.md", "tasks.md"],
+        "points": -15
+      }
+    }
+  },
+
+  "track_b": {
+    "name": "Semantic Sufficiency",
+    "description": "LLM-based semantic completeness check with evidence requirements",
+    "model": "claude-3-5-haiku-20241022",
+    "max_tokens": 2000,
+    "cache_ttl_minutes": 5,
+
+    "rubric": {
+      "criteria": [
+        {
+          "id": 1,
+          "name": "goal_clarity",
+          "description": "Goal is unambiguous and measurable",
+          "required": true,
+          "evidence_required": true
+        },
+        {
+          "id": 2,
+          "name": "success_criteria",
+          "description": "Success criteria cover user intent (not just implementation)",
+          "required": true,
+          "evidence_required": true
+        },
+        {
+          "id": 3,
+          "name": "no_implicit_dependencies",
+          "description": "No implicit dependencies or hidden assumptions",
+          "required": true,
+          "evidence_required": true
+        },
+        {
+          "id": 4,
+          "name": "edge_cases",
+          "description": "Edge cases and error paths addressed",
+          "required": true,
+          "evidence_required": true
+        },
+        {
+          "id": 5,
+          "name": "rollback_strategy",
+          "description": "Rollback/migration strategy present (if needed)",
+          "required": true,
+          "evidence_required": true,
+          "conditional": "feature requires data/schema changes"
+        }
+      ]
+    },
+
+    "output_schema": {
+      "type": "object",
+      "required": ["ok", "confidence", "reason", "evidence", "gaps"],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "true only if ALL criteria have evidence"
+        },
+        "confidence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Confidence score (0-100)"
+        },
+        "reason": {
+          "type": "string",
+          "description": "One sentence summary"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["claim", "citation"],
+            "properties": {
+              "claim": {
+                "type": "string",
+                "description": "Which criterion this supports"
+              },
+              "citation": {
+                "type": "string",
+                "description": "Exact quote from spec proving claim"
+              }
+            }
+          }
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "Missing information items"
+          }
+        },
+        "skipped": {
+          "type": "boolean",
+          "description": "true if API key unavailable (degraded mode)"
+        }
+      }
+    },
+
+    "fallback": {
+      "when_api_unavailable": {
+        "ok": true,
+        "confidence": 0,
+        "reason": "Semantic check skipped - API key not available (degraded mode: Track A only)",
+        "evidence": [],
+        "gaps": [],
+        "skipped": true,
+        "exit_code": 0
+      }
+    }
+  },
+
+  "gate_logic": {
+    "pass_criteria": {
+      "track_a": "readiness_score >= confidence_threshold",
+      "track_b": "semantic_ok == true OR skipped == true",
+      "combined": "track_a AND track_b"
+    },
+
+    "failure_handling": {
+      "question_budget": {
+        "default": 2,
+        "max_questions_per_round": 5,
+        "prioritize": "blocking gaps only"
+      },
+      "assumptions_pack": {
+        "trigger": "question_round >= question_budget AND gate still failing",
+        "required_sections": ["Unresolved Gaps", "Proposed Assumptions", "Acceptance"],
+        "user_options": [
+          "Accept assumptions and proceed",
+          "Provide more information"
+        ]
+      },
+      "stuck_report": {
+        "trigger": "assumptions rejected",
+        "required_sections": ["Blocking Gaps", "Information Needed", "Attempts Made", "Recommendation"],
+        "next_state": "blocked"
+      }
+    },
+
+    "post_gate_actions": {
+      "on_pass": [
+        "create .works/spec/{feature}/spec.lock",
+        "update progress.md: spec_locked=true, phase=4, readiness_score={score}, semantic_ok=true",
+        "enable write guard hook"
+      ],
+      "on_fail": [
+        "increment question_round if budget available",
+        "generate blocking questions from gaps",
+        "use AskUserQuestion",
+        "record Q&A in qa.md",
+        "retry gate"
+      ]
+    }
+  },
+
+  "validation": {
+    "score_range": {
+      "min": 0,
+      "max": 100
+    },
+    "required_files": ["contracts.md", "tasks.md"],
+    "optional_files": ["README.md"],
+    "output_files": {
+      "track_a": "score.json",
+      "track_b": "semantic-check.json",
+      "qa_log": "qa.md",
+      "assumptions": "assumptions.md",
+      "spec_lock": "spec.lock"
+    }
+  }
+}

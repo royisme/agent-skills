@@ -1,6 +1,6 @@
-# Feature Development Workflow
+# Smart-Dev: Feature Development Workflow
 
-A systematic 5-phase workflow for feature development in Claude Code.
+A systematic 5-phase workflow for feature development with dual-mode execution, 95% readiness gating, and iteration control.
 
 ## Overview
 
@@ -8,19 +8,69 @@ This skill provides a structured approach to feature development:
 
 1. **Discovery** - Clarify requirements, make product decisions
 2. **Exploration** - Understand existing codebase patterns
-3. **Documentation** - Create spec documents before code
+3. **Documentation & Readiness Gate** - Create spec documents with 95% confidence check before implementation
 4. **Implementation** - Build incrementally with verification
 5. **Review & PR** - Ensure quality and submit
 
+## Execution Modes
+
+### Dev Mode (Single-Shot)
+Execute the full workflow once with readiness gating:
+```
+/smart-dev:dev "Add user profile feature"
+```
+
+**Features**:
+- One-time execution through all 5 phases
+- 95% readiness gate at Phase 3c (blocks implementation until spec is complete)
+- Verification retry (max 3 attempts)
+- Graceful failure reporting
+
+### Loop Mode (Iterative)
+Continuous iteration until completion or timeout:
+```
+/smart-dev:loop "Add GraphQL subscriptions" --max-iterations 20
+```
+
+**Features**:
+- Automatic retry until verification passes
+- Stop hook prevents premature exit
+- Iteration budget (default: 20)
+- Completion promise detection ("DONE")
+- Graceful cancellation: `/smart-dev:cancel {feature-name}`
+
 ## Key Features
+
+### 95% Readiness Gate (Phase 3c)
+**Dual-track scoring** before implementation:
+
+- **Track A (Structural)**: Deterministic checks (0-100 points)
+  - Structure completeness (25 pts)
+  - Testability criteria (25 pts)
+  - Interface definitions (15 pts)
+  - Constraint specifications (15 pts)
+  - Verification plan (20 pts)
+  - Penalties for placeholders, TODOs, missing sections
+
+- **Track B (Semantic)**: LLM-based sufficiency check
+  - Goal clarity and measurability
+  - Success criteria alignment with user intent
+  - Edge case coverage
+  - Evidence-based evaluation with citations
+
+**Question Budget**: Max 2 Q&A rounds to prevent infinite loops
+**Fallback**: Assumptions pack when budget exhausted (user accepts/rejects)
+
+### Other Features
 
 - **Multi-model agents**: Right model for each task
   - Opus for deep product thinking
-  - Haiku for fast exploration
-  - Sonnet for architecture and review
+  - Haiku for fast exploration and semantic checks
+  - Sonnet for architecture, implementation, and review
 - **Progress persistence**: Resume interrupted work seamlessly
 - **Fork context**: Agents don't pollute main session context
-- **Documentation-first**: Spec documents before code
+- **Spec lock enforcement**: Write guard prevents spec edits after readiness gate passes
+- **Documentation-first**: Spec documents validated before code
 
 ## Installation
 
@@ -43,15 +93,34 @@ Or add to `.claude/settings.json`:
 
 ## Usage
 
-Invoke the skill:
-- Say "implement a feature" or "add new feature"
-- Use `/feature` command
-- Ask for "feature workflow"
+### Commands
+
+**Dev Mode (Single-Shot)**:
+```bash
+/smart-dev:dev "Feature description" [--confidence-threshold 95] [--question-rounds 2]
+```
+
+**Loop Mode (Iterative)**:
+```bash
+/smart-dev:loop "Feature description" [--max-iterations 20] [--confidence-threshold 95]
+```
+
+**Cancel Loop**:
+```bash
+/smart-dev:cancel [feature-name]
+```
+
+### Automatic Invocation
+
+The skill also auto-triggers when you say:
+- "implement a feature"
+- "add new feature"
+- "use /smart-dev"
 
 Example:
 ```
 User: I want to add user authentication with OAuth
-Claude: [Launches feature-development-workflow skill]
+Claude: [Launches smart-dev skill in dev mode]
         Let me help you implement this feature systematically...
 ```
 
@@ -61,11 +130,17 @@ The skill creates spec files in `.works/spec/{feature-name}/`:
 
 ```
 .works/spec/{feature-name}/
-├── progress.md        # Progress tracking
-├── README.md          # Index + decisions
-├── contracts.md       # Data contracts
-├── tasks.md           # Task breakdown
-└── PR.md              # PR template
+├── progress.md            # Progress tracking (YAML frontmatter + markdown)
+├── README.md              # Index + decisions
+├── contracts.md           # Data contracts
+├── tasks.md               # Task breakdown
+├── PR.md                  # PR template
+├── qa.md                  # Q&A log (question rounds)
+├── score.json             # Readiness scoring results (Track A)
+├── semantic-check.json    # Semantic sufficiency check (Track B)
+├── verification.log       # Test/build output history
+├── assumptions.md         # Assumptions pack (if question budget exhausted)
+└── spec.lock              # Spec freeze marker (created after readiness gate passes)
 ```
 
 ## Agents
@@ -82,10 +157,14 @@ The skill creates spec files in `.works/spec/{feature-name}/`:
 
 | Script | Purpose |
 |--------|---------|
-| `init.sh {name}` | Initialize feature workspace |
+| `init.sh {name}` | Initialize feature workspace (creates 11 files) |
 | `check-progress.sh` | Check for incomplete features |
-| `update-progress.sh` | Update progress state |
+| `update-progress.sh` | Update progress state (supports --set-field) |
 | `update-changelog.sh` | Update CHANGELOG.md |
+| `score-spec.ts {feature}` | Run Track A structural scoring |
+| `check-semantic.ts {feature}` | Run Track B semantic sufficiency check |
+| `loop-stop.sh` | Stop hook for iteration control (blocks premature exit) |
+| `guard-writes.sh` | PreToolUse hook for spec-lock enforcement |
 
 ## Requirements
 

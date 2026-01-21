@@ -36,6 +36,26 @@ started_at: ${TIMESTAMP}
 updated_at: ${TIMESTAMP}
 decisions: []
 completed_phases: []
+
+# NEW: Mode and iteration tracking
+mode: dev
+iteration: 0
+max_iterations: 20
+completion_promise: "DONE"
+
+# NEW: Readiness gating
+confidence_threshold: 95
+readiness_score: 0
+semantic_ok: false
+semantic_skipped: false
+spec_locked: false
+question_round: 0
+question_budget: 2
+
+# NEW: Loop state
+last_verification_status: ""
+last_error: ""
+assumptions_accepted: false
 ---
 
 # Progress: ${FEATURE_NAME}
@@ -44,6 +64,7 @@ completed_phases: []
 - **Phase**: 1 - Discovery
 - **Status**: In Progress
 - **Started**: ${TIMESTAMP}
+- **Mode**: dev (single-shot)
 
 ## Completed Phases
 (none yet)
@@ -52,6 +73,7 @@ completed_phases: []
 - [x] Phase 1: Discovery (current)
 - [ ] Phase 2: Codebase Exploration
 - [ ] Phase 3: Documentation & Tasks
+- [ ] Phase 3c: Readiness Gate (NEW - 95% confidence check)
 - [ ] Phase 4: Implementation
 - [ ] Phase 5: Review & PR
 
@@ -60,6 +82,12 @@ completed_phases: []
 - Last action: Initialized feature workspace
 - Blocking issues: None
 - Next steps: Clarify requirements, make key decisions
+
+## Readiness Gate Status
+- Structural score: 0/100
+- Semantic check: not run
+- Spec locked: No
+- Question rounds used: 0/2
 
 ## Decision Log
 <!-- Q1, Q2, etc. will be recorded here -->
@@ -208,17 +236,72 @@ cat > "${SPEC_DIR}/PR.md" << EOF
 🤖 Generated with [Claude Code](https://claude.ai/code)
 EOF
 
+# Create qa.md (Q&A log)
+cat > "${SPEC_DIR}/qa.md" << 'EOF'
+# Q&A Log
+
+> Record of questions asked and answers received during spec refinement
+
+---
+
+<!-- Questions will be appended here in format:
+## Q1 (Round 1)
+**Asked**: YYYY-MM-DDTHH:MM:SSZ
+**Question**: [question text]
+**Answer**: [answer text]
+-->
+EOF
+
+# Create score.json (readiness scoring results)
+cat > "${SPEC_DIR}/score.json" << 'EOF'
+{
+  "total": 0,
+  "breakdown": {
+    "structure": 0,
+    "testability": 0,
+    "interfaces": 0,
+    "constraints": 0,
+    "verification": 0
+  },
+  "penalties": [],
+  "gaps": [],
+  "last_updated": null
+}
+EOF
+
+# Create verification.log (test/build output history)
+cat > "${SPEC_DIR}/verification.log" << 'EOF'
+# Verification Log
+
+> History of test/build verification attempts
+
+---
+
+<!-- Verification attempts will be appended here in format:
+## Attempt 1 - YYYY-MM-DDTHH:MM:SSZ
+**Status**: pass/fail
+**Output**:
+```
+[command output]
+```
+-->
+EOF
+
 echo ""
 echo "Feature workspace created at: ${SPEC_DIR}"
 echo ""
 echo "Files created:"
-echo "  - ${SPEC_DIR}/progress.md    (progress tracking)"
-echo "  - ${SPEC_DIR}/README.md      (index + decisions)"
-echo "  - ${SPEC_DIR}/contracts.md   (data contracts)"
-echo "  - ${SPEC_DIR}/tasks.md       (task breakdown)"
-echo "  - ${SPEC_DIR}/PR.md          (PR template)"
+echo "  - ${SPEC_DIR}/progress.md       (progress tracking)"
+echo "  - ${SPEC_DIR}/README.md         (index + decisions)"
+echo "  - ${SPEC_DIR}/contracts.md      (data contracts)"
+echo "  - ${SPEC_DIR}/tasks.md          (task breakdown)"
+echo "  - ${SPEC_DIR}/PR.md             (PR template)"
+echo "  - ${SPEC_DIR}/qa.md             (Q&A log)"
+echo "  - ${SPEC_DIR}/score.json        (readiness scoring)"
+echo "  - ${SPEC_DIR}/verification.log  (test/build history)"
 echo ""
 echo "Next steps:"
 echo "  1. Complete Phase 1: Discovery - clarify requirements"
 echo "  2. Make key decisions and record in README.md"
 echo "  3. progress.md will track your workflow state"
+echo "  4. Readiness gate will check 95% confidence before implementation"

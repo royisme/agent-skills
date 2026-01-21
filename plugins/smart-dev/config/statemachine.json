@@ -1,0 +1,229 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Smart-Dev State Machine Definition",
+  "description": "Defines valid states, transitions, and constraints for feature development workflow",
+  "version": "1.0.0",
+
+  "states": {
+    "in_progress": {
+      "description": "Initial state or general work in progress",
+      "validModes": ["dev", "loop"],
+      "allowedPhases": [1, 2, 3, 4, 5]
+    },
+    "collecting": {
+      "description": "Collecting requirements and refining spec (Phase 1-3)",
+      "validModes": ["loop"],
+      "allowedPhases": [1, 2, 3],
+      "nextStates": ["implementing", "blocked"]
+    },
+    "implementing": {
+      "description": "Writing code (Phase 4)",
+      "validModes": ["dev", "loop"],
+      "allowedPhases": [4],
+      "requires": {
+        "spec_locked": true
+      },
+      "nextStates": ["fixing", "done", "blocked"]
+    },
+    "fixing": {
+      "description": "Fixing verification failures",
+      "validModes": ["dev", "loop"],
+      "allowedPhases": [4],
+      "requires": {
+        "last_verification_status": "fail"
+      },
+      "nextStates": ["implementing", "done", "blocked"]
+    },
+    "done": {
+      "description": "Implementation complete, verification passed",
+      "validModes": ["dev", "loop"],
+      "allowedPhases": [5],
+      "requires": {
+        "last_verification_status": "pass",
+        "spec_locked": true
+      },
+      "nextStates": ["completed"]
+    },
+    "blocked": {
+      "description": "Workflow blocked, requires user intervention",
+      "validModes": ["dev", "loop"],
+      "allowedPhases": [1, 2, 3, 4, 5],
+      "nextStates": ["collecting", "implementing", "canceled"]
+    },
+    "completed": {
+      "description": "All phases complete, PR created",
+      "validModes": ["dev", "loop"],
+      "allowedPhases": [5],
+      "requires": {
+        "last_verification_status": "pass",
+        "spec_locked": true
+      },
+      "terminal": true
+    },
+    "canceled": {
+      "description": "User canceled loop mode",
+      "validModes": ["loop"],
+      "allowedPhases": [1, 2, 3, 4, 5],
+      "terminal": true
+    }
+  },
+
+  "transitions": {
+    "rules": [
+      {
+        "from": "in_progress",
+        "to": "collecting",
+        "condition": "mode == 'loop' && phase <= 3"
+      },
+      {
+        "from": "in_progress",
+        "to": "implementing",
+        "condition": "spec_locked == true && phase == 4"
+      },
+      {
+        "from": "collecting",
+        "to": "implementing",
+        "condition": "readiness_score >= confidence_threshold && semantic_ok == true",
+        "action": "create_spec_lock"
+      },
+      {
+        "from": "collecting",
+        "to": "blocked",
+        "condition": "question_round >= question_budget && assumptions_accepted == false"
+      },
+      {
+        "from": "implementing",
+        "to": "fixing",
+        "condition": "last_verification_status == 'fail'"
+      },
+      {
+        "from": "implementing",
+        "to": "done",
+        "condition": "last_verification_status == 'pass'"
+      },
+      {
+        "from": "fixing",
+        "to": "implementing",
+        "condition": "errors_fixed == true"
+      },
+      {
+        "from": "fixing",
+        "to": "done",
+        "condition": "last_verification_status == 'pass'"
+      },
+      {
+        "from": "done",
+        "to": "completed",
+        "condition": "pr_created == true || mode == 'dev'"
+      },
+      {
+        "from": "blocked",
+        "to": "collecting",
+        "condition": "user_provided_info == true && mode == 'loop'",
+        "description": "Loop mode: return to spec collection after user provides missing info"
+      },
+      {
+        "from": "blocked",
+        "to": "implementing",
+        "condition": "user_provided_info == true && mode == 'dev' && spec_locked == true",
+        "description": "Dev mode: return to implementation after resolving blocking issue"
+      },
+      {
+        "from": "*",
+        "to": "canceled",
+        "condition": "user_cancel_command == true && mode == 'loop'"
+      }
+    ]
+  },
+
+  "modes": {
+    "dev": {
+      "description": "Single-shot mode with one-time workflow execution",
+      "allowedStates": ["in_progress", "implementing", "fixing", "done", "blocked", "completed"],
+      "iterationLimit": 1,
+      "verificationRetries": 3,
+      "stopHook": false
+    },
+    "loop": {
+      "description": "Iterative mode with automatic retry until completion",
+      "allowedStates": ["collecting", "implementing", "fixing", "done", "blocked", "completed", "canceled"],
+      "iterationLimit": 20,
+      "verificationRetries": -1,
+      "stopHook": true,
+      "completionPromise": "DONE"
+    }
+  },
+
+  "validation": {
+    "required_fields": [
+      "feature",
+      "phase",
+      "phase_name",
+      "status",
+      "branch",
+      "started_at",
+      "updated_at",
+      "mode",
+      "iteration",
+      "max_iterations",
+      "completion_promise",
+      "confidence_threshold",
+      "readiness_score",
+      "semantic_ok",
+      "semantic_skipped",
+      "spec_locked",
+      "question_round",
+      "question_budget",
+      "last_verification_status",
+      "last_error",
+      "assumptions_accepted"
+    ],
+    "field_types": {
+      "feature": "string",
+      "phase": "integer",
+      "phase_name": "string",
+      "status": "enum",
+      "branch": "string",
+      "started_at": "iso8601",
+      "updated_at": "iso8601",
+      "mode": "enum",
+      "iteration": "integer",
+      "max_iterations": "integer",
+      "completion_promise": "string",
+      "confidence_threshold": "integer",
+      "readiness_score": "integer",
+      "semantic_ok": "boolean",
+      "semantic_skipped": "boolean",
+      "spec_locked": "boolean",
+      "question_round": "integer",
+      "question_budget": "integer",
+      "last_verification_status": "string",
+      "last_error": "string",
+      "assumptions_accepted": "boolean"
+    },
+    "enums": {
+      "status": ["in_progress", "collecting", "implementing", "fixing", "done", "blocked", "completed", "canceled"],
+      "mode": ["dev", "loop"],
+      "phase": [1, 2, 3, 4, 5]
+    },
+    "constraints": {
+      "readiness_score": {
+        "min": 0,
+        "max": 100
+      },
+      "confidence_threshold": {
+        "min": 0,
+        "max": 100,
+        "default": 95
+      },
+      "question_round": {
+        "min": 0,
+        "max": "question_budget"
+      },
+      "iteration": {
+        "min": 0,
+        "max": "max_iterations"
+      }
+    }
+  }
+}
