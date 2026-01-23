@@ -21,7 +21,7 @@
           },
           {
             "type": "prompt",
-            "prompt": "If this session involved feature-development-workflow, check if there are any in-progress features in .works/spec/*/progress.md. If found, update the progress.md file with current state, phase, and any important context that would help resume the work later."
+            "prompt": "If this session involved smart-dev, check if there are any in-progress features in .works/spec/*/progress.md. If found, update the progress.md file with current state, phase, and any important context that would help resume the work later."
           }
         ]
       }
