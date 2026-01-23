@@ -1,6 +1,6 @@
 #!/bin/bash
 # Initialize feature development workspace
-# Usage: bash .claude/skills/feature-development-workflow/scripts/init.sh <feature-name>
+# Usage: bash .claude/skills/smart-dev/scripts/init.sh <feature-name>
 
 set -euo pipefail
 
