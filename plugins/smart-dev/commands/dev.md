@@ -71,11 +71,9 @@ Follow these phases in order:
    ```
 
 2. **Run semantic check** (Track B):
-   ```bash
-   bun run ${CLAUDE_PLUGIN_ROOT}/scripts/check-semantic.ts \
-     --feature {feature-name}
-   ```
-   Note: If ANTHROPIC_API_KEY not set, semantic check will be skipped with a warning.
+   - Use Task tool to launch `semantic-checker` agent
+   - Provide README.md, contracts.md, tasks.md as context
+   - Save the JSON output to `.works/spec/{feature}/semantic-check.json`
 
 3. **Evaluate gate condition**:
    - Pass if: `readiness_score >= {confidence-threshold}` AND `semantic_ok == true`
@@ -208,7 +206,6 @@ Please provide answers to "Information Needed" section, then:
 - Spec files are **locked after Phase 3c passes** (cannot edit contracts.md, tasks.md)
 - To unlock: Delete `.works/spec/{feature}/spec.lock` (only if readiness gate needs re-run)
 - Question budget applies across **entire session** (not per-phase)
-- ANTHROPIC_API_KEY required for semantic check (falls back to Track A only if missing)
 
 ## Quick Reference
 
@@ -216,8 +213,8 @@ Please provide answers to "Information Needed" section, then:
 # Check readiness score manually
 bun run ${CLAUDE_PLUGIN_ROOT}/scripts/score-spec.ts --feature {feature-name}
 
-# Check semantic sufficiency manually
-ANTHROPIC_API_KEY=xxx bun run ${CLAUDE_PLUGIN_ROOT}/scripts/check-semantic.ts --feature {feature-name}
+# Validate semantic check results (optional)
+bun run ${CLAUDE_PLUGIN_ROOT}/scripts/check-semantic.ts --feature {feature-name}
 
 # View current progress
 cat .works/spec/{feature-name}/progress.md
