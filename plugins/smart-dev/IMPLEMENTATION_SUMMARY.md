@@ -28,7 +28,7 @@ Successfully implemented the Smart-Dev Enhancement Plan adding dual-mode executi
    - State machine tracking: iteration, status, verification results
    - Completion promise detection
 
-## Files Created (17 new files)
+## Files Created (18 new files)
 
 ### Commands (3)
 - `commands/dev.md` - Single-shot mode command
@@ -37,9 +37,12 @@ Successfully implemented the Smart-Dev Enhancement Plan adding dual-mode executi
 
 ### Scripts (4 new)
 - `scripts/score-spec.ts` - Track A structural scoring (TypeScript/Bun)
-- `scripts/check-semantic.ts` - Track B semantic check (Claude API)
+- `scripts/check-semantic.ts` - Track B semantic check validator (no API)
 - `scripts/loop-stop.sh` - Stop hook for iteration control
 - `scripts/guard-writes.sh` - PreToolUse hook for spec-lock enforcement
+
+### Agents (1 new)
+- `agents/semantic-checker.md` - Track B semantic sufficiency check
 
 ### Examples (4)
 - `examples/sample-progress.md` - Example with all new frontmatter fields
@@ -157,14 +160,11 @@ Successfully implemented the Smart-Dev Enhancement Plan adding dual-mode executi
 - ✅ update-progress.sh supports --set-field
 - ✅ SKILL.md updated with Phase 3c
 
-## API Key Requirement
+## Semantic Check Execution
 
-**Track B Semantic Check** requires `ANTHROPIC_API_KEY` environment variable:
-```bash
-export ANTHROPIC_API_KEY=sk-ant-xxx
-```
-
-**Fallback**: If not set, semantic check is skipped with warning. Gate can pass with Track A alone (degraded mode).
+**Track B Semantic Check** runs via the `semantic-checker` agent using the in-session model.
+Results are written to `semantic-check.json` with the same schema as before. The
+`check-semantic.ts` script now validates existing results (optional).
 
 ## File Permissions
 
@@ -224,10 +224,9 @@ chmod +x plugins/smart-dev/scripts/*.ts
 ## Known Limitations
 
 1. **Question Budget Global**: Applies across all iterations (loop mode), not per-iteration
-2. **Semantic Check Requires API**: No offline fallback for Track B
-3. **Hook Context Limited**: PreToolUse hook doesn't receive full file content, only path
-4. **Manual Unlock Required**: Must delete spec.lock to unlock spec after major changes
-5. **No Bulk Cancel**: Must cancel loop features one at a time
+2. **Hook Context Limited**: PreToolUse hook doesn't receive full file content, only path
+3. **Manual Unlock Required**: Must delete spec.lock to unlock spec after major changes
+4. **No Bulk Cancel**: Must cancel loop features one at a time
 
 ## Future Enhancements (Not Implemented)
 
@@ -284,23 +283,18 @@ Implementation achieves all plan objectives:
    /smart-dev:loop "test feature" --max-iterations 5
    ```
 
-2. **Set API key** (for Track B semantic check):
-   ```bash
-   export ANTHROPIC_API_KEY=your-key-here
-   ```
-
-3. **Review examples**:
+2. **Review examples**:
    ```bash
    cat plugins/smart-dev/examples/sample-progress.md
    cat plugins/smart-dev/examples/sample-score.json
    ```
 
-4. **Read readiness gate guide**:
+3. **Read readiness gate guide**:
    ```bash
    cat plugins/smart-dev/references/readiness-gate.md
    ```
 
-5. **Try scoring manually**:
+4. **Try scoring manually**:
    ```bash
    # Create test feature first
    bash plugins/smart-dev/scripts/init.sh test-feature
