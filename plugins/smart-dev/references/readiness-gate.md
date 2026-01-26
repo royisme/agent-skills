@@ -56,11 +56,9 @@ Phase 3c (Readiness Gate) is a critical quality checkpoint that prevents impleme
 
 **Pass Criteria**: `ok: true` (all 5 criteria have evidence)
 
-**Implementation**: `scripts/check-semantic.ts` (calls Claude Haiku API)
+**Implementation**: `agents/semantic-checker.md` (in-session model, no external API)
 
-**Speed**: ~2-5 seconds (API call)
-
-**Fallback**: If `ANTHROPIC_API_KEY` not set, Track B is skipped with warning. Gate can pass with Track A alone (degraded mode).
+**Speed**: ~1-3 seconds (agent run)
 
 ## Gate Execution Flow
 
@@ -69,7 +67,7 @@ Phase 3c (Readiness Gate) is a critical quality checkpoint that prevents impleme
    ├─ Score >= 95? ──┐
    └─ Score < 95? ───┤
                      │
-2. Run Track B (check-semantic.ts)
+2. Run Track B (semantic-checker agent)
    ├─ semantic_ok: true ──┐
    └─ semantic_ok: false ─┤
                           │
@@ -221,17 +219,14 @@ bun run plugins/smart-dev/scripts/score-spec.ts \
 
 ### Track B: Semantic Check
 
+Use the `semantic-checker` agent to review README.md, contracts.md, and tasks.md.
+Launch it via the Task tool, then save its JSON output to
+`.works/spec/{feature-name}/semantic-check.json`.
+
+Optional validation:
 ```bash
-# Requires API key
-ANTHROPIC_API_KEY=sk-ant-xxx bun run plugins/smart-dev/scripts/check-semantic.ts \
-  --feature {feature-name}
-
-# Exit codes
-# 0 = semantic_ok: true (pass)
-# 1 = semantic_ok: false (fail)
-```text
-
-**Cache**: Results cached for 5 minutes (avoids redundant API calls).
+bun run plugins/smart-dev/scripts/check-semantic.ts --feature {feature-name}
+```
 
 **Output**:
 - Console: ok status, confidence, evidence, gaps
@@ -416,15 +411,17 @@ cat .works/spec/{feature-name}/qa.md
 # Re-run Track A
 bun run plugins/smart-dev/scripts/score-spec.ts --feature {feature-name}
 
-# Re-run Track B (invalidates cache)
+# Re-run Track B
 rm .works/spec/{feature-name}/semantic-check.json
-ANTHROPIC_API_KEY=xxx bun run plugins/smart-dev/scripts/check-semantic.ts --feature {feature-name}
+# Re-run semantic-checker agent and save semantic-check.json
+# Optional validation:
+bun run plugins/smart-dev/scripts/check-semantic.ts --feature {feature-name}
 ```text
 
 ## Troubleshooting
 
-**Q: Gate passes Track A but fails Track B with "API error"**
-A: Check `ANTHROPIC_API_KEY` is set. If unavailable, gate can pass with Track A alone (degraded mode).
+**Q: semantic-check.json is missing or invalid**
+A: Re-run the semantic-checker agent and confirm the JSON output matches the required schema.
 
 **Q: Score is 94, just 1 point short of threshold**
 A: Review `score.json` penalties. Often a single "TBD" placeholder costs 5 points. Remove it to pass.
@@ -444,6 +441,7 @@ A: Normal! Gate checks 95% completeness, not 100%. Phase 5 review catches remain
 ## References
 
 - Scoring rubric: See `scripts/score-spec.ts` source code
-- Semantic prompt: See `scripts/check-semantic.ts` source code
+- Semantic prompt: See `agents/semantic-checker.md`
+- Validator script: See `scripts/check-semantic.ts`
 - Example outputs: See `examples/sample-score.json`, `examples/sample-semantic-check.json`
 - Workflow integration: See Phase 3c in `skills/smart-dev/SKILL.md`
