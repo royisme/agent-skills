@@ -185,8 +185,8 @@
 
   "track_b": {
     "name": "Semantic Sufficiency",
-    "description": "LLM-based semantic completeness check with evidence requirements",
-    "model": "claude-3-5-haiku-20241022",
+    "description": "Semantic completeness check using the in-session model (no external API)",
+    "model": "session-model",
     "max_tokens": 2000,
     "cache_ttl_minutes": 5,
 

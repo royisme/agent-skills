@@ -39,7 +39,7 @@ jq -r '.transitions.rules[] | select(.from == "collecting" and .to == "implement
 
 **Usage**:
 - `score-spec.ts` should implement checks according to these rules
-- `check-semantic.ts` should enforce the rubric criteria
+- `semantic-checker` agent should enforce the rubric criteria
 - Users can customize thresholds and weights
 - Documentation reference for understanding scoring
 
@@ -123,7 +123,7 @@ const weights = scoringRules.track_a.categories.structure.points;
 ```
 
 ```typescript
-// check-semantic.ts - Load rubric from config
+// semantic-checker agent - Load rubric from config
 import scoringRules from '../config/scoring-rules.json';
 const criteria = scoringRules.track_b.rubric.criteria;
 ```
@@ -187,7 +187,8 @@ Potential improvements:
 - `../commands/*.md` - Command definitions (frontmatter + guide)
 - `../references/readiness-gate.md` - Detailed readiness gate guide
 - `../scripts/score-spec.ts` - Structural scoring implementation
-- `../scripts/check-semantic.ts` - Semantic check implementation
+- `../agents/semantic-checker.md` - Semantic check instructions (Track B)
+- `../scripts/check-semantic.ts` - Semantic check result validator (optional)
 
 ---
 
