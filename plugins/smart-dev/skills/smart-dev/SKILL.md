@@ -166,7 +166,7 @@ The readiness gate uses two complementary checks:
 2. **Track B: Semantic Sufficiency** (LLM-based)
    - Checks for ambiguity, hidden assumptions, logical gaps
    - Requires evidence citations from spec
-   - Uses Claude API (Haiku model)
+   - Uses semantic-checker agent (in-session model)
 
 ### Execution Steps
 
@@ -179,11 +179,9 @@ bun run ${CLAUDE_PLUGIN_ROOT}/scripts/score-spec.ts \
 Result written to `.works/spec/{feature}/score.json`
 
 **2. Run semantic check**:
-```bash
-ANTHROPIC_API_KEY=xxx bun run ${CLAUDE_PLUGIN_ROOT}/scripts/check-semantic.ts \
-  --feature {feature-name}
-```
-Result written to `.works/spec/{feature}/semantic-check.json`
+- Use Task tool to launch `semantic-checker` agent
+- Provide README.md, contracts.md, tasks.md as context
+- Write the JSON output to `.works/spec/{feature}/semantic-check.json`
 
 **3. Evaluate gate condition**:
 - `readiness_score >= 95` AND `semantic_ok == true`
@@ -349,6 +347,7 @@ When resuming an interrupted session:
 | `product-thinker` | Opus | Deep product decisions, UX analysis |
 | `codebase-explorer` | Haiku | Fast codebase exploration |
 | `architect` | Sonnet | Architecture design, implementation blueprints |
+| `semantic-checker` | Haiku | Track B semantic sufficiency check |
 | `reviewer` | Sonnet | Code quality review |
 | `react-coder` | Sonnet | React Code developer  |
 
@@ -362,7 +361,7 @@ When resuming an interrupted session:
 | `update-progress.sh` | Update progress file (supports --set-field for loop mode) |
 | `update-changelog.sh` | Update CHANGELOG.md on completion |
 | `score-spec.ts` | Track A: Structural readiness scoring (0-100) |
-| `check-semantic.ts` | Track B: Semantic sufficiency check (requires API key) |
+| `check-semantic.ts` | Validate semantic-check.json results (optional) |
 | `loop-stop.sh` | Stop hook: Controls loop mode iteration lifecycle |
 | `guard-writes.sh` | PreToolUse hook: Prevents spec edits after spec.lock |
 

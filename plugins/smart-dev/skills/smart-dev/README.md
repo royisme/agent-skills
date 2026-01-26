@@ -150,6 +150,7 @@ The skill creates spec files in `.works/spec/{feature-name}/`:
 | `product-thinker` | Opus | Deep product decisions, UX analysis |
 | `codebase-explorer` | Haiku | Fast codebase exploration |
 | `architect` | Sonnet | Architecture design |
+| `semantic-checker` | Haiku | Track B semantic sufficiency check |
 | `reviewer` | Sonnet | Code quality review |
 | `react-coder` | Sonnet | Code writer |
 
@@ -162,7 +163,7 @@ The skill creates spec files in `.works/spec/{feature-name}/`:
 | `update-progress.sh` | Update progress state (supports --set-field) |
 | `update-changelog.sh` | Update CHANGELOG.md |
 | `score-spec.ts {feature}` | Run Track A structural scoring |
-| `check-semantic.ts {feature}` | Run Track B semantic sufficiency check |
+| `check-semantic.ts {feature}` | Validate semantic-check.json results (optional) |
 | `loop-stop.sh` | Stop hook for iteration control (blocks premature exit) |
 | `guard-writes.sh` | PreToolUse hook for spec-lock enforcement |
 
