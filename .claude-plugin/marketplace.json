@@ -23,7 +23,6 @@
     {
       "name": "context-keeper",
       "version": "1.0.1",
-
       "description": "Maintains project context through progressive disclosure and enforced documentation",
       "category": "developer-tools",
       "strict": false,
@@ -32,7 +31,6 @@
     {
       "name": "cloudflare-guide",
       "version": "1.0.1",
-
       "description": "Help developer to create any services on cloudflare",
       "category": "developer-tools",
       "strict": false,
@@ -48,7 +46,7 @@
     },
     {
       "name": "smart-dev",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "description": "Systematic feature development with dual-mode execution (dev/loop), 95% readiness gating, and iteration control. Supports /smart-dev:dev, /smart-dev:loop, /smart-dev:cancel commands.",
       "category": "development",
       "strict": false,
