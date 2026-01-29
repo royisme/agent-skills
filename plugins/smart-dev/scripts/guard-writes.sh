@@ -1,17 +1,26 @@
 #!/usr/bin/env bash
 # PreToolUse hook: Block writes to spec files if spec locked
-# Args: $1=tool_name, $2=file_path (from Claude Code hook context)
+# Reads tool info from stdin (Claude Code hook API)
 # Returns:
 #   0 = Allow tool use
 #   2 = Block tool use
 
 set -euo pipefail
 
-TOOL_NAME="${1:-}"
-FILE_PATH="${2:-}"
+# Read hook input from stdin
+HOOK_INPUT=$(cat)
+
+# Extract tool name and file path from JSON input
+TOOL_NAME=$(echo "$HOOK_INPUT" | jq -r '.tool_name // empty')
+FILE_PATH=$(echo "$HOOK_INPUT" | jq -r '.tool_input.file_path // empty')
 
 # Only guard Write/Edit tools
 if [[ "$TOOL_NAME" != "Write" ]] && [[ "$TOOL_NAME" != "Edit" ]]; then
+  exit 0
+fi
+
+# Skip if no file path
+if [[ -z "$FILE_PATH" ]]; then
   exit 0
 fi
 

@@ -1,16 +1,25 @@
 #!/usr/bin/env bash
 # Stop hook: Block exit unless loop completion conditions met
+# Reads from stdin (Claude Code hook API provides session context)
 # Returns:
 #   0 = Allow stop
 #   2 = Block stop (continue iteration)
 
 set -euo pipefail
 
-FEATURE_DIR="${1:-.works/spec}"
+# Read hook input from stdin (for future use if needed)
+HOOK_INPUT=$(cat)
+
+FEATURE_DIR=".works/spec"
+
+# Early exit: Check if feature directory exists
+if [[ ! -d "$FEATURE_DIR" ]]; then
+  exit 0
+fi
 
 # Find all in-progress features with mode=loop
 LOOP_FEATURES=$(find "$FEATURE_DIR" -name "progress.md" -type f 2>/dev/null | while read -r file; do
-  if [ -f "$file" ]; then
+  if [[ -f "$file" ]]; then
     mode=$(grep "^mode:" "$file" 2>/dev/null | head -n1 | awk '{print $2}' || echo "")
     status=$(grep "^status:" "$file" 2>/dev/null | head -n1 | awk '{print $2}' || echo "")
 
@@ -29,7 +38,7 @@ fi
 for feature_path in $LOOP_FEATURES; do
   progress_file="$feature_path/progress.md"
 
-  if [ ! -f "$progress_file" ]; then
+  if [[ ! -f "$progress_file" ]]; then
     continue
   fi
 

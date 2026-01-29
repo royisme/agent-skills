@@ -34,3 +34,4 @@ htmlcov/
 *.bak
 .security-scan-passed
 .works
+node_modules

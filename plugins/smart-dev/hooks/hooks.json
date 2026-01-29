@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-progress.sh"
+            "description": "Check for incomplete feature development on session start",
+            "command": "bash ~/.claude/plugins/cache/roy-agent-skills/smart-dev/2.0.0/scripts/check-progress.sh"
           }
         ]
       }
@@ -17,25 +18,24 @@
           {
             "type": "command",
             "description": "Prevent exit during active loop iterations",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/loop-stop.sh"
+            "command": "bash ~/.claude/plugins/cache/roy-agent-skills/smart-dev/2.0.0/scripts/loop-stop.sh"
           },
           {
             "type": "prompt",
-            "prompt": "If this session involved smart-dev, check if there are any in-progress features in .works/spec/*/progress.md. If found, update the progress.md file with current state, phase, and any important context that would help resume the work later."
+            "description": "Update progress tracking for active features",
+            "prompt": "Check if there are any in-progress features in .works/spec/*/progress.md. If found, update the progress.md file with current state, phase, and any important context that would help resume the work later."
           }
         ]
       }
     ],
     "PreToolUse": [
       {
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
             "description": "Block spec edits after readiness gate passes",
-            "scope": {
-              "tools": ["Write", "Edit"]
-            },
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/guard-writes.sh"
+            "command": "bash ~/.claude/plugins/cache/roy-agent-skills/smart-dev/2.0.0/scripts/guard-writes.sh"
           }
         ]
       }

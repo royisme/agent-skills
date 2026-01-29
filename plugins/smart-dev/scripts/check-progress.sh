@@ -1,8 +1,12 @@
 #!/bin/bash
 # Check for incomplete feature development progress
 # Called by SessionStart hook
+# Reads from stdin (Claude Code hook API)
 
 set -euo pipefail
+
+# Read hook input from stdin (for future use if needed)
+HOOK_INPUT=$(cat)
 
 WORKS_DIR=".works/spec"
 
