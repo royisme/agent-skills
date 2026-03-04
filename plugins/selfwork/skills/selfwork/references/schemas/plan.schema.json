@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Architecture Plan",
+  "type": "object",
+  "required": ["run_id", "spec_path", "tasks", "execution_order"],
+  "properties": {
+    "run_id": { "type": "string" },
+    "spec_path": { "type": "string", "description": "Path to spec document" },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "task_type", "criticality"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "task_type": { "type": "string", "enum": ["tdd", "non_tdd"] },
+          "criticality": { "type": "string", "enum": ["critical", "normal"] },
+          "dependencies": { "type": "array", "items": { "type": "string" } },
+          "test_command": { "type": "string" },
+          "target_files": { "type": "array", "items": { "type": "string" } },
+          "complexity": { "type": "string", "enum": ["small", "medium", "hard"] },
+          "agent_type": { "type": "string", "enum": ["haiku-dev", "sonnet-dev"] }
+        }
+      }
+    },
+    "execution_order": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Recommended task execution order by task id"
+    }
+  }
+}

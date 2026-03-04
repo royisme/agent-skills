@@ -1,0 +1,33 @@
+{
+  "run_id": "example-run-20260301T120000",
+  "plan": "Refactor heartbeat wake integration",
+  "branch": "main",
+  "status": "executing",
+  "max_retries": 2,
+  "tasks": [
+    {
+      "id": "t1",
+      "title": "Define queue abstraction",
+      "complexity": "medium",
+      "agent_type": "sonnet-dev",
+      "status": "completed",
+      "blocked_by": [],
+      "agent_id": "a123",
+      "review_status": "approved",
+      "test_status": "pass",
+      "retry_count": 0
+    },
+    {
+      "id": "t2",
+      "title": "Integrate runtime hook",
+      "complexity": "hard",
+      "agent_type": "sonnet-dev",
+      "status": "pending",
+      "blocked_by": ["t1"],
+      "agent_id": null,
+      "review_status": "pending",
+      "test_status": "pending",
+      "retry_count": 0
+    }
+  ]
+}

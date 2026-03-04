@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Run State",
+  "type": "object",
+  "required": ["run_id", "plan", "branch", "status", "tasks"],
+  "properties": {
+    "run_id": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+    "plan": { "type": "string" },
+    "branch": { "type": "string" },
+    "status": { "type": "string", "enum": ["planning", "analyzing", "specifying", "executing", "completed", "blocked"] },
+    "spec_status": { "type": "string", "enum": ["draft", "approved", "obsolete"], "default": "draft" },
+    "spec_path": { "type": "string", "description": "Path to spec doc under devDocs/spec/selfwork/" },
+    "input_source": { "type": "string", "enum": ["interactive", "external_plan", "mixed"], "default": "interactive" },
+    "input_refs": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "requirement_confidence": { "type": "string", "enum": ["low", "medium", "high"] },
+    "confidence_rationale": { "type": "string" },
+    "max_retries": { "type": "integer", "default": 2 },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "status", "blocked_by"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "complexity": { "type": "string", "enum": ["small", "medium", "hard"] },
+          "agent_type": { "type": "string" },
+          "status": { "type": "string", "enum": ["pending", "dispatched", "agent_done", "reviewing", "completed", "failed"] },
+          "blocked_by": { "type": "array", "items": { "type": "string" } },
+          "agent_id": { "type": ["string", "null"] },
+          "review_status": { "type": "string", "enum": ["pending", "approved", "changes_requested", "blocked"] },
+          "test_status": { "type": "string", "enum": ["pending", "pass", "fail", "skipped"] },
+          "retry_count": { "type": "integer", "default": 0 },
+          "task_type": { "type": "string", "enum": ["tdd", "non_tdd"], "default": "non_tdd" },
+          "criticality": { "type": "string", "enum": ["critical", "normal"], "default": "normal" },
+          "test_command": { "type": "string" },
+          "spec_source": { "type": "string" }
+        }
+      }
+    }
+  }
+}

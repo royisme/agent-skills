@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Review Report",
+  "type": "object",
+  "required": ["run_id", "task_id", "verdict", "issues", "quality_gates"],
+  "properties": {
+    "run_id": { "type": "string" },
+    "task_id": { "type": "string" },
+    "verdict": { "type": "string", "enum": ["approved", "changes_requested", "blocked"] },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "description"],
+        "properties": {
+          "severity": { "type": "string", "enum": ["error", "warning", "info"] },
+          "description": { "type": "string" },
+          "file": { "type": "string" },
+          "line": { "type": "integer" }
+        }
+      }
+    },
+    "test_result": { "type": "string", "enum": ["pass", "fail", "skipped"] },
+    "quality_gates": {
+      "type": "object",
+      "required": ["lint", "typecheck", "test"],
+      "properties": {
+        "lint": { "type": "string", "enum": ["pass", "fail", "skipped"] },
+        "typecheck": { "type": "string", "enum": ["pass", "fail", "skipped"] },
+        "test": { "type": "string", "enum": ["pass", "fail", "skipped"] }
+      }
+    }
+  }
+}

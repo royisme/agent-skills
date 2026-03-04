@@ -58,6 +58,14 @@
       "category": "development",
       "strict": false,
       "source": "./plugins/pythonice"
+    },
+    {
+      "name": "selfwork",
+      "version": "1.0.0",
+      "description": "Autonomous task execution with planning, development, review, and debugging agents",
+      "category": "development",
+      "strict": false,
+      "source": "./plugins/selfwork"
     }
   ]
 }
