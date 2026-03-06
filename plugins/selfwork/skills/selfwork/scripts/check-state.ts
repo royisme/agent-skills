@@ -3,12 +3,13 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 const REPO_ROOT = resolve(process.cwd())
-const DISPATCH_DIR = resolve(REPO_ROOT, '.claude/dispatch')
-const ACTIVE_FILE = resolve(DISPATCH_DIR, 'active')
+const SELFWORK_DIR = resolve(REPO_ROOT, '.claude/selfwork')
+const ACTIVE_FILE = resolve(SELFWORK_DIR, 'active')
 const RUN_ID_PATTERN = /^[A-Za-z0-9._-]+$/
 
 const TASK_STATUSES = new Set([
   'pending',
+  'dispatching',
   'dispatched',
   'agent_done',
   'reviewing',
@@ -16,7 +17,7 @@ const TASK_STATUSES = new Set([
   'failed',
 ] as const)
 
-const RUN_STATUSES = new Set(['planning', 'executing', 'completed', 'blocked'] as const)
+const RUN_STATUSES = new Set(['planning', 'intent_recognition', 'info_collecting', 'analyzing', 'designing', 'specifying', 'executing', 'completed', 'blocked'] as const)
 
 type Task = {
   id: string
@@ -78,7 +79,6 @@ function isTaskDone(task: Task, reviewMode: ReviewMode) {
     return task.review_status === 'approved'
   }
 
-  // Mixed mode: follow normalization guidance. Missing review_status => pending.
   if (!hasReviewField(task)) {
     return false
   }
@@ -157,7 +157,7 @@ async function main() {
     return
   }
 
-  const statePath = `${DISPATCH_DIR}/runs/${runId}/state.json`
+  const statePath = resolve(SELFWORK_DIR, 'runs', runId, 'state.json')
   const state = await readJson<RunState>(statePath)
   if (!state) {
     print({ ok: false, error: 'state.json missing or invalid', runId, statePath })
