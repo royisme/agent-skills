@@ -13,8 +13,8 @@ Header uses a JSON code block for structured contract fields. Descriptive conten
   "task_type": "tdd",
   "criticality": "critical",
   "test_command": "bun run test:run src/xxx.test.ts",
-  "spec_source": "devDocs/spec/selfwork/xxx.md#section",
-  "output_artifact": ".claude/dispatch/runs/<run-id>/artifacts/dev-report-t1.json"
+  "spec_source": ".claude/selfwork/docs/xxx.md#section",
+  "output_artifact": ".claude/selfwork/runs/<run-id>/artifacts/dev-report-t1.json"
 }
 \`\`\`
 

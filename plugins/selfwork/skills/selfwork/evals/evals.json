@@ -1,0 +1,71 @@
+{
+  "skill_name": "selfwork",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "请启动 selfwork 来处理这个仓库里的一个新需求：我要给 selfwork 增加一套更可靠的 benchmark/eval 流程，现在项目里还没有 active run。你应该先初始化当前项目下的 selfwork 状态，然后进入合适的 requirement clarification / orchestration 流程，而不是直接写代码。",
+      "expected_output": "The skill initializes project-local selfwork state when no active run exists, stays in orchestrator mode, and starts the correct early-phase workflow instead of implementing directly.",
+      "files": [],
+      "assertions": [
+        "Uses project-local .claude/selfwork runtime state rather than the plugin install directory.",
+        "Behaves as an orchestrator and does not directly implement the requested feature.",
+        "Handles the no-active-run case as a bootstrap/start flow rather than a resume flow."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "继续当前的 selfwork run。仓库里已经有 active run，而且它现在停在 designing 阶段。你需要恢复当前 run，检查已有产物，并在该阶段应停在人类确认 gate 的地方停住，而不是直接推进到 executing。",
+      "expected_output": "The skill resumes the active run, recognizes the designing phase, and stops at the design confirmation gate instead of auto-advancing into later phases.",
+      "files": [],
+      "assertions": [
+        "Resumes an existing active run instead of creating a new run.",
+        "Recognizes that designing is a human-gate phase and requests confirmation rather than auto-executing.",
+        "Does not skip from designing directly into executing."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "我只有一个很模糊的目标：让 selfwork 更聪明一些，减少它无意义地反复问我要不要继续。请用 selfwork 来接手这个需求。它应该先判断需求是否清晰，不清晰时进入 research/analysis 流程，而不是直接产出技术实现。",
+      "expected_output": "The skill treats the request as under-specified, uses the early information-gathering / analysis flow, and does not jump straight to implementation or final specification.",
+      "files": [],
+      "assertions": [
+        "Treats the request as ambiguous rather than fully specified.",
+        "Chooses an info-collecting or analysis-oriented next step instead of direct implementation.",
+        "Does not let the main orchestrator act as the developer."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "当前 selfwork run 已经在 specifying 阶段，architect 也已经产出了 plan.json，但 spec_status 还不是 approved。继续这个 run。正确行为应该是给我一个 spec summary 并等待 approval，而不是直接开始 dispatch developer。",
+      "expected_output": "The skill respects the specification approval gate, summarizes the spec status, and waits for approval before entering execution or dispatching developers.",
+      "files": [],
+      "assertions": [
+        "Recognizes that plan.json existing is not sufficient to start execution when spec_status is not approved.",
+        "Waits for spec approval instead of dispatching developer work.",
+        "Keeps the orchestrator in gate-handling mode rather than implementation mode."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "当前 selfwork run 已经在 executing 阶段，并且有一个 dispatchable pending task。继续这个 run。正确行为应该是自动进入 reconcile -> dispatch decision -> dispatch subagent 的流程，不要再问我要不要继续。",
+      "expected_output": "The skill automatically continues the execution loop, reconciles state, decides the next action, and dispatches the appropriate subagent without asking the user whether to continue.",
+      "files": [],
+      "assertions": [
+        "Automatically continues execution when work is dispatchable.",
+        "Does not ask the user for ordinary continue/confirm permission during normal execution.",
+        "Delegates work to a subagent rather than performing the task directly."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "当前 selfwork run 在 executing 阶段，一个任务已经 agent_done。继续这个 run。正确行为应该是自动把它交给 reviewer，而不是让主 orchestrator 自己 review，也不是停下来问我要不要继续。",
+      "expected_output": "The skill recognizes the agent_done task and automatically dispatches review work to the reviewer subagent, without turning the main agent into the reviewer or asking unnecessary continuation questions.",
+      "files": [],
+      "assertions": [
+        "Recognizes agent_done as a trigger for automatic review dispatch.",
+        "Does not let the main orchestrator perform the review itself.",
+        "Does not ask the user for unnecessary continuation confirmation during normal execution."
+      ]
+    }
+  ]
+}

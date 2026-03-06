@@ -74,7 +74,7 @@ For each key finding, evaluate:
 
 **ALWAYS write the analysis report to:**
 ```
-.claude/dispatch/runs/<run-id>/artifacts/analysis-report.json
+.claude/selfwork/runs/<run-id>/artifacts/analysis-report.json
 ```
 
 Schema reference: `selfwork-plugin/.claude-plugin/skills/selfwork/references/schemas/analysis-report.schema.json`

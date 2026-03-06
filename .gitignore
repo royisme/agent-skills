@@ -35,3 +35,6 @@ htmlcov/
 .security-scan-passed
 .works
 node_modules
+.claude
+.serena
+plugins/selfwork/skills/selfwork-workspace/

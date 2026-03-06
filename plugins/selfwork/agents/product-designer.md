@@ -69,7 +69,7 @@ Create a comprehensive Product Requirements Document covering:
 ## Step 3: Write Output
 
 ### Product Requirements Document
-**Write to:** `devDocs/spec/selfwork/<topic>.md`
+**Write to:** `.claude/selfwork/docs/<topic>.md`
 
 ### Structured Product Spec
 **Write to:** `.claude/selfwork/runs/<run-id>/artifacts/product-spec.json`
@@ -79,7 +79,7 @@ Create a comprehensive Product Requirements Document covering:
 ```json
 {
   "run_id": "<run-id>",
-  "spec_path": "devDocs/spec/selfwork/<topic>.md",
+  "spec_path": ".claude/selfwork/docs/<topic>.md",
   "overview": "2-3 sentence product overview",
   "goals": [
     {

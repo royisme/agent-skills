@@ -55,7 +55,7 @@ Read("devDocs/spec/existing-example.md")
 
 ## Step 3: Write Specification Document
 
-Write the spec to `devDocs/spec/selfwork/<topic>.md` following existing project conventions.
+Write the spec to `.claude/selfwork/docs/<topic>.md` following existing project conventions.
 
 **Spec structure:**
 ```markdown
@@ -102,10 +102,10 @@ Break the spec into implementable tasks:
 ## Step 5: Write Output
 
 ### Specification Document
-**Write to:** `devDocs/spec/selfwork/<topic>.md`
+**Write to:** `.claude/selfwork/docs/<topic>.md`
 
 ### Implementation Plan
-**Write to:** `.claude/dispatch/runs/<run-id>/artifacts/plan.json`
+**Write to:** `.claude/selfwork/runs/<run-id>/artifacts/plan.json`
 
 Schema reference: `selfwork-plugin/.claude-plugin/skills/selfwork/references/schemas/plan.schema.json`
 
@@ -114,7 +114,7 @@ Schema reference: `selfwork-plugin/.claude-plugin/skills/selfwork/references/sch
 ```json
 {
   "run_id": "<run-id>",
-  "spec_path": "devDocs/spec/selfwork/<topic>.md",
+  "spec_path": ".claude/selfwork/docs/<topic>.md",
   "tasks": [
     {
       "id": "t1",
@@ -137,7 +137,7 @@ Schema reference: `selfwork-plugin/.claude-plugin/skills/selfwork/references/sch
 
 1. **Spec and plan only** — never write implementation code
 2. **Output valid JSON** — plan.json must conform to schema
-3. **Fixed spec path** — specs must go under `devDocs/spec/selfwork/`
+3. **Fixed spec path** — specs must go under `.claude/selfwork/docs/`
 4. **Right-sized tasks** — each task should be completable by one agent in one session
 5. **Follow existing conventions** — match the project's spec style and patterns
 6. **TDD tasks need test commands** — every `critical + tdd` task must have `test_command`

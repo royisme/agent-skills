@@ -84,7 +84,7 @@ For TDD tasks, additionally verify:
 
 **ALWAYS write the review report to:**
 ```
-.claude/dispatch/runs/<run-id>/artifacts/review-report-<task-id>.json
+.claude/selfwork/runs/<run-id>/artifacts/review-report-<task-id>.json
 ```
 
 Schema reference: `selfwork-plugin/.claude-plugin/skills/selfwork/references/schemas/review-report.schema.json`

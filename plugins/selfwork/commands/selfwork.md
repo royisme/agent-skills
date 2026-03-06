@@ -4,6 +4,8 @@ description: Start or resume selfwork orchestration. Reads active run to resume 
 
 Use the `selfwork` skill to execute the start/resume flow.
 
+This command is the entrypoint. The `selfwork` skill defines the persistent orchestrator contract; this command is responsible for bootstrapping the current repository and then following that contract.
+
 Before any planning, resume, or dispatch work:
 1. Use Bash to run `bun "${CLAUDE_PLUGIN_ROOT}/skills/selfwork/scripts/bootstrap.ts"` from the current repository.
 2. Confirm the bootstrap result shows the current project's `.claude/selfwork/` as the state root.
@@ -25,8 +27,8 @@ Execution rules:
 - Build an executable dispatch plan by running `bun "${CLAUDE_PLUGIN_ROOT}/skills/selfwork/scripts/execute-next.ts"` in the current repository.
 - Reserve dispatch state by running `bun "${CLAUDE_PLUGIN_ROOT}/skills/selfwork/scripts/dispatch-executor.ts"` before launching subagents.
 - If work is dispatchable, the main agent must launch the appropriate subagent instead of implementing, testing, or reviewing directly.
-- If a selfwork hook returns `decision=block` with an `instruction.action` of `dispatch_subagent`, execute that dispatch immediately.
-- Treat the hook's `instruction`, `dispatch-next.ts` output, and `execute-next.ts` execution plan as authoritative orchestration protocol.
+- If a selfwork hook returns an `instruction`, treat that instruction as authoritative for that stop-hook event.
+- Treat `dispatch-next.ts` output and `execute-next.ts` execution plan as the primary orchestration protocol throughout the run.
 - Do not ask the user whether to continue normal execution once a task has been decomposed, unless the workflow is at a human gate or blocked state.
 
 Dispatch protocol:
@@ -37,7 +39,8 @@ Dispatch protocol:
 5. Dispatch phases map to prompts as follows:
    - `info_collecting` → include user request, research scope, and output path `.claude/selfwork/runs/<run-id>/artifacts/info-collection.json`
    - `analyzing` → include user request, info collection artifact if present, and output path `.claude/selfwork/runs/<run-id>/artifacts/requirement-analysis.json`
-   - `designing` → include requirement analysis artifact, optional info collection artifact, and output path `.claude/selfwork/runs/<run-id>/artifacts/product-spec.json`
+   - `designing` → include requirement analysis artifact, optional info collection artifact, output path `.claude/selfwork/runs/<run-id>/artifacts/product-spec.json`, and the human-readable spec path `.claude/selfwork/docs/<topic>.md`
+   - `specifying` → include the analyzed/design inputs needed by the architect, the authoritative spec path `.claude/selfwork/docs/<topic>.md`, and the output path `.claude/selfwork/runs/<run-id>/artifacts/plan.json`
    - `dispatch` / `retry` → include the full subtask spec from `.claude/selfwork/task-specs/<run-id>/subtasks/<task-id>.md` and the expected dev report path
    - `review` → include the developer report, subtask spec, and expected review report path
 6. For `mode=parallel`, launch all independent jobs in a single response with multiple Agent tool calls.
