@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { open, readFile, rename, unlink } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 
 type StopHookInput = {
   stop_hook_active: boolean
@@ -41,7 +41,8 @@ type DispatchState = {
 }
 
 const REPO_ROOT = resolve(process.cwd())
-const PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT ?? resolve(REPO_ROOT, '.claude-plugin')
+const SCRIPT_DIR = dirname(process.argv[1] ?? '')
+const PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT ?? resolve(SCRIPT_DIR, '..')
 const SELFWORK_DIR = resolve(REPO_ROOT, '.claude/selfwork')
 const RUNS_DIR = resolve(SELFWORK_DIR, 'runs')
 const ACTIVE_FILE = resolve(SELFWORK_DIR, 'active')

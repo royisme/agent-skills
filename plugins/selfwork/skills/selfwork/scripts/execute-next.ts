@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 
 type DispatchInstruction = {
   action: 'none' | 'dispatch_subagent' | 'await_human_gate' | 'blocked'
@@ -47,11 +47,12 @@ type DispatchJob = {
 }
 
 const REPO_ROOT = resolve(process.cwd())
+const SCRIPT_DIR = dirname(process.argv[1] ?? '')
 const SELFWORK_DIR = resolve(REPO_ROOT, '.claude/selfwork')
 const ACTIVE_FILE = resolve(SELFWORK_DIR, 'active')
 const RUNS_DIR = resolve(SELFWORK_DIR, 'runs')
 const TASK_SPECS_DIR = resolve(SELFWORK_DIR, 'task-specs')
-const PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT ?? resolve(REPO_ROOT, '.claude-plugin')
+const PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT ?? resolve(SCRIPT_DIR, '../../..')
 const DISPATCH_NEXT_SCRIPT = resolve(PLUGIN_ROOT, 'skills/selfwork/scripts/dispatch-next.ts')
 
 async function readJson<T>(path: string): Promise<T | null> {
