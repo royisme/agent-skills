@@ -61,7 +61,7 @@
     },
     {
       "name": "selfwork",
-      "version": "1.0.0",
+      "version": "3.3.0",
       "description": "Autonomous task execution with planning, development, review, and debugging agents",
       "category": "development",
       "strict": false,
