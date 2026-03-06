@@ -16,7 +16,7 @@ The main agent (CEO) only makes dispatch decisions — it never implements. Work
    - Resume to the phase matching `status`
    - `info_collecting` → check if info-collection.json is complete
    - `analyzing` → check if requirement-analysis.json is complete
-   - `designing` → check if product-spec.json is complete
+   - `designing` → check whether design artifacts exist and whether `design_status` is approved
    - `specifying` → check plan.json and spec_status
    - `executing` → check task statuses
 5. Missing → create the first run:
@@ -57,15 +57,17 @@ The main agent (CEO) only makes dispatch decisions — it never implements. Work
 3. CEO checks clarity and either clarifies with user or proceeds
 
 ### E2: Product Design (status=designing)
-1. CEO dispatches Product Designer agent
+1. If either the JSON design artifact or the design document is missing, CEO dispatches Product Designer agent
 2. Agent outputs `artifacts/product-spec.json` and product spec document
-3. CEO confirms design is ready for technical specification
+3. Once both artifacts exist, CEO stops at the design confirmation gate
+4. User confirms → `design_status=approved`
+5. Only approved design may advance to technical specification
 
 ## Phase F: Specification (status=specifying)
 
 1. CEO dispatches Architect agent
 2. Architect outputs:
-   - Spec document → `devDocs/spec/selfwork/<topic>.md`
+   - Spec document → `.claude/selfwork/docs/<topic>.md`
    - Implementation plan → `artifacts/plan.json`
 3. CEO presents spec summary to user, requests confirmation
 4. User confirms → `spec_status=approved`
@@ -138,7 +140,7 @@ For each task in `execution_order`:
 7. If a task is retryable, the CEO must re-dispatch automatically with failure context.
 8. When the hook returns a structured `instruction`, that instruction is the authoritative next-action protocol.
 9. `instruction.action = dispatch_subagent` must be executed immediately by the CEO.
-10. Specification-phase architect dispatch follows the same protocol: reconcile → dispatch-next → execute-next → dispatch-executor → Agent launch.
+10. Design-phase product-designer dispatch and specification-phase architect dispatch both follow the same protocol: reconcile → dispatch-next → execute-next → dispatch-executor → Agent launch.
 11. Normal execution does not require repeated user confirmation.
 12. The user is consulted only at explicit human gates or blocked/manual intervention states.
 

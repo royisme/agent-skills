@@ -1,0 +1,14 @@
+{
+  "run_id": "run-eval02-design-gate",
+  "plan": "iteration-2-fixture",
+  "branch": "main",
+  "status": "designing",
+  "design_status": "draft",
+  "spec_status": "draft",
+  "spec_path": ".claude/selfwork/docs/benchmark-iteration-2-spec.md",
+  "input_source": "interactive",
+  "input_refs": [],
+  "max_retries": 2,
+  "updated_at": "2026-03-06T00:00:00.000Z",
+  "tasks": []
+}

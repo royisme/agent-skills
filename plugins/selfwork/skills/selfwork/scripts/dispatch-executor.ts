@@ -122,12 +122,25 @@ async function updateStateForDispatch(statePath: string, instruction: DispatchIn
   const taskMap = new Map(tasks.map((task) => [task.id, task]))
   const touched: Array<{ task_id: string; agent_id: string; subagent_type: string; status: string }> = []
 
-  if (instruction.phase === 'specifying') {
+  if (instruction.phase === 'designing' || instruction.phase === 'specifying') {
+    const phaseJob = jobs[0]
+    const agentId = phaseJob ? buildAgentId(phaseJob) : `selfwork-${instruction.phase}-${Date.now()}`
+
     state.last_instruction = state.current_instruction ?? null
-    state.current_instruction = instruction
+    state.current_instruction = {
+      ...instruction,
+      notes: [...(instruction.notes ?? []), `Reserved ${instruction.phase} dispatch as ${agentId}.`],
+    }
     state.blocked_reason = null
     state.updated_at = now()
     await writeJsonAtomically(statePath, state)
+
+    touched.push({
+      task_id: instruction.phase,
+      agent_id: agentId,
+      subagent_type: phaseJob?.subagent_type ?? instruction.subagent_type ?? 'unknown',
+      status: 'reserved',
+    })
     return touched
   }
 

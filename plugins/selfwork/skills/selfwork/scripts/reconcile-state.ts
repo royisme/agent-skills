@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 type RunStatus = 'planning' | 'intent_recognition' | 'info_collecting' | 'analyzing' | 'designing' | 'specifying' | 'executing' | 'completed' | 'blocked'
-type TaskStatus = 'pending' | 'dispatched' | 'agent_done' | 'reviewing' | 'completed' | 'failed'
+type TaskStatus = 'pending' | 'dispatching' | 'dispatched' | 'agent_done' | 'reviewing' | 'completed' | 'failed'
 type ReviewStatus = 'pending' | 'approved' | 'changes_requested' | 'blocked'
 
 type Task = {
@@ -26,10 +26,14 @@ type Task = {
   updated_at?: string
 }
 
+type GateStatus = 'draft' | 'approved' | 'obsolete'
+
 type RunState = {
   run_id?: string
   status?: RunStatus
-  spec_status?: 'draft' | 'approved' | 'obsolete'
+  design_status?: GateStatus
+  spec_status?: GateStatus
+  spec_path?: string | null
   blocked_reason?: string | null
   updated_at?: string
   current_instruction?: unknown
@@ -54,6 +58,10 @@ type ReviewReport = {
   verdict?: 'approved' | 'changes_requested' | 'blocked'
   issues?: ReviewIssue[]
   test_result?: 'pass' | 'fail' | 'skipped'
+}
+
+type ProductSpec = {
+  spec_path?: string
 }
 
 const REPO_ROOT = resolve(process.cwd())
@@ -91,6 +99,13 @@ function artifactPath(runId: string, name: string) {
   return resolve(RUNS_DIR, runId, 'artifacts', name)
 }
 
+function resolveSpecPath(state: RunState) {
+  if (!state.spec_path) {
+    return null
+  }
+  return resolve(REPO_ROOT, state.spec_path)
+}
+
 function firstIssueDescription(report: ReviewReport | null) {
   const first = report?.issues?.find((issue) => typeof issue.description === 'string' && issue.description.trim().length > 0)
   return first?.description?.trim() ?? null
@@ -110,17 +125,29 @@ async function reconcilePhase(state: RunState, runId: string, transitions: strin
   }
 
   if (state.status === 'designing' && existsSync(artifactPath(runId, 'product-spec.json'))) {
-    state.status = 'specifying'
-    transitions.push('status designing -> specifying')
+    const productSpec = await readJson<ProductSpec>(artifactPath(runId, 'product-spec.json'))
+    if (productSpec?.spec_path) {
+      state.spec_path = productSpec.spec_path
+    }
+
+    const resolvedSpecPath = resolveSpecPath(state)
+    if (resolvedSpecPath && existsSync(resolvedSpecPath) && (state.design_status ?? 'draft') === 'approved') {
+      state.status = 'specifying'
+      transitions.push('status designing -> specifying')
+    }
   }
 
-  if (
-    state.status === 'specifying' &&
-    existsSync(artifactPath(runId, 'plan.json')) &&
-    state.spec_status === 'approved'
-  ) {
-    state.status = 'executing'
-    transitions.push('status specifying -> executing')
+  if (state.status === 'specifying') {
+    const resolvedSpecPath = resolveSpecPath(state)
+    if (
+      existsSync(artifactPath(runId, 'plan.json')) &&
+      resolvedSpecPath &&
+      existsSync(resolvedSpecPath) &&
+      state.spec_status === 'approved'
+    ) {
+      state.status = 'executing'
+      transitions.push('status specifying -> executing')
+    }
   }
 }
 

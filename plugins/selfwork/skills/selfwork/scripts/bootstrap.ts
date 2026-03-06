@@ -9,6 +9,7 @@ const SELFWORK_DIR = resolve(CLAUDE_DIR, 'selfwork')
 const RUNS_DIR = resolve(SELFWORK_DIR, 'runs')
 const TASK_SPECS_DIR = resolve(SELFWORK_DIR, 'task-specs')
 const ARCHIVE_DIR = resolve(SELFWORK_DIR, 'archive')
+const DOCS_DIR = resolve(SELFWORK_DIR, 'docs')
 const ACTIVE_FILE = resolve(SELFWORK_DIR, 'active')
 const RUN_ID_PATTERN = /^[A-Za-z0-9._-]+$/
 
@@ -69,6 +70,7 @@ async function ensureNewRun() {
     plan: 'bootstrap-pending',
     branch,
     status: 'planning',
+    design_status: 'draft',
     spec_status: 'draft',
     input_source: 'interactive',
     input_refs: [],
@@ -95,6 +97,7 @@ async function main() {
   await ensureDir(RUNS_DIR)
   await ensureDir(TASK_SPECS_DIR)
   await ensureDir(ARCHIVE_DIR)
+  await ensureDir(DOCS_DIR)
 
   let activeRun: string | null = null
 
@@ -125,6 +128,7 @@ async function main() {
         repo_root: REPO_ROOT,
         claude_dir: CLAUDE_DIR,
         selfwork_dir: SELFWORK_DIR,
+        docs_dir: DOCS_DIR,
         active_run: activeRun,
         initialized: true,
         bootstrap: bootstrapResult,

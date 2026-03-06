@@ -1,0 +1,32 @@
+{
+  "eval_id": 2,
+  "eval_name": "resume-design-gate",
+  "prompt": "继续当前的 selfwork run。仓库里已经有 active run，而且它现在停在 designing 阶段。你需要恢复当前 run，检查已有产物，并在该阶段应停在人类确认 gate 的地方停住，而不是直接推进到 executing。",
+  "assertions": [
+    "Resumes an existing active run instead of creating a new run.",
+    "Recognizes that designing is a human-gate phase and requests confirmation rather than auto-executing.",
+    "Does not skip from designing directly into executing."
+  ],
+  "fixture_expectations": {
+    "require_active_run": true,
+    "expected_status": "designing",
+    "expected_design_status": "draft",
+    "expected_spec_status": "draft",
+    "require_spec_path": true,
+    "require_spec_path_exists": true,
+    "required_run_artifacts": ["product-spec.json"],
+    "forbidden_run_artifacts": ["plan.json"],
+    "required_docs": ["benchmark-iteration-2-spec.md"],
+    "forbidden_docs": [],
+    "expected_dispatchable_pending_tasks": 0,
+    "expected_agent_done_tasks": 0,
+    "expected_next_action": "await_human_gate",
+    "expected_phase": "designing",
+    "expected_subagent_type": null,
+    "expected_mode": null,
+    "baseline": {
+      "mode": "registered_skill",
+      "skill_name": "skill-snapshot"
+    }
+  }
+}

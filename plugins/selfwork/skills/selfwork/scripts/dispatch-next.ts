@@ -20,10 +20,14 @@ type Task = {
   criticality?: 'critical' | 'normal'
 }
 
+type GateStatus = 'draft' | 'approved' | 'obsolete'
+
 type RunState = {
   run_id?: string
   status?: RunStatus
-  spec_status?: 'draft' | 'approved' | 'obsolete'
+  design_status?: GateStatus
+  spec_status?: GateStatus
+  spec_path?: string | null
   max_retries?: number
   tasks?: Task[]
 }
@@ -170,7 +174,21 @@ async function main() {
   }
 
   if (status === 'designing') {
-    print({ ok: true, instruction: { action: 'dispatch_subagent', phase: 'designing', run_id: runId, subagent_type: 'product-designer', mode: 'serial', notes: ['Dispatch product-designer to produce product-spec outputs.'] } satisfies NextInstruction })
+    const productSpecPath = resolve(RUNS_DIR, runId, 'artifacts', 'product-spec.json')
+    const resolvedSpecPath = state.spec_path ? resolve(REPO_ROOT, state.spec_path) : null
+    const hasDesignArtifacts = existsSync(productSpecPath) && Boolean(resolvedSpecPath && existsSync(resolvedSpecPath))
+
+    if (!hasDesignArtifacts) {
+      print({ ok: true, instruction: { action: 'dispatch_subagent', phase: 'designing', run_id: runId, subagent_type: 'product-designer', mode: 'serial', notes: ['Dispatch product-designer to produce product-spec outputs and the design document.'] } satisfies NextInstruction })
+      return
+    }
+
+    if ((state.design_status ?? 'draft') !== 'approved') {
+      print({ ok: true, instruction: { action: 'await_human_gate', phase: 'designing', run_id: runId, notes: ['Design artifacts are ready and waiting for design approval or rework.'] } satisfies NextInstruction })
+      return
+    }
+
+    print({ ok: true, instruction: { action: 'none', phase: 'designing', run_id: runId, notes: ['Design approved. Reconcile state to advance into specifying.'] } satisfies NextInstruction })
     return
   }
 

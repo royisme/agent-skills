@@ -1,16 +1,18 @@
 ---
 name: selfwork
 description: >-
-  SDD+TDD orchestration for autonomous multi-step development.
-  Main agent acts as CEO (read state, make decisions, dispatch, accept delivery).
-  Specialized agents handle analysis, architecture, implementation, and review.
-  Enforces spec-driven development with test-first execution and full traceability.
+  Use this skill when the user wants to start or resume a selfwork run,
+  continue autonomous multi-step development from current project state, or
+  orchestrate analysis, design, specification, implementation, and review
+  through specialized subagents. It resumes `./.claude/selfwork/active` when
+  present, otherwise initializes project-local selfwork state and begins the
+  correct orchestration flow without turning the main agent into the implementer.
 user_invocable: false
 ---
 
 # selfwork — CEO Orchestration Skill
 
-## Trigger Mapping
+## Related Commands
 
 - `/selfwork` — Start or resume orchestration
 - `/selfwork:status` — Show current run state
@@ -42,11 +44,12 @@ The main agent must behave as a pure orchestrator:
 - may bootstrap, read state, decide next action, dispatch subagents, and update state
 - must not directly implement task code, run task-level testing, or perform task review work
 - must not consume subtask specs as if it were the assigned developer/reviewer
+- must run `scripts/reconcile-state.ts` to consume artifacts and advance run/task state before computing the next action
 - must compute next action from `scripts/dispatch-next.ts` in the current repository before ordinary execution decisions
 - must compute the executable dispatch plan from `scripts/execute-next.ts` before launching subagents
-- must run `scripts/reconcile-state.ts` to consume artifacts and advance run/task state before computing the next action
 - must use `scripts/dispatch-executor.ts` to reserve dispatch work in state before launching subagents
-- must treat a selfwork hook `instruction` payload as the authoritative next-action protocol when present
+- must treat `dispatch-next.ts` and `execute-next.ts` as the authoritative orchestration protocol
+- must treat a selfwork hook `instruction` payload as authoritative when the hook provides one
 - must immediately execute `instruction.action=dispatch_subagent` by launching the required subagent(s)
 - must ask the user only at explicit human gates:
   - requirement clarification
@@ -59,13 +62,13 @@ The main agent must behave as a pure orchestrator:
 
 | Role | Agent | Responsibility | Output Artifact |
 |------|-------|----------------|-----------------|
-| Info Collector | Agent(subagent_type=info-collector) | Research, competitive analysis, context gathering | info-collection.json |
-| Requirement Analyst | Agent(subagent_type=requirement-analyst) | User stories, acceptance criteria, requirement structuring | requirement-analysis.json |
-| Product Designer | Agent(subagent_type=product-designer) | PRD, user flows, UI/UX specs | product-spec.md + product-spec.json |
-| Architect | Agent(subagent_type=architect) | Technical spec, task decomposition | spec file + plan.json |
-| Senior Developer | Agent(subagent_type=sonnet-dev) | Complex implementation | code + dev-report.json |
-| Developer | Agent(subagent_type=haiku-dev) | Simple implementation | code + dev-report.json |
-| Reviewer | Agent(subagent_type=code-reviewer) | Code review, quality gate | review-report.json |
+| Info Collector | Agent(subagent_type=info-collector) | Research, competitive analysis, context gathering | `artifacts/info-collection.json` |
+| Requirement Analyst | Agent(subagent_type=requirement-analyst) | User stories, acceptance criteria, requirement structuring | `artifacts/requirement-analysis.json` |
+| Product Designer | Agent(subagent_type=product-designer) | PRD, user flows, UI/UX specs | `.claude/selfwork/docs/<topic>.md` + `artifacts/product-spec.json` |
+| Architect | Agent(subagent_type=architect) | Technical spec, task decomposition | spec file + `artifacts/plan.json` |
+| Senior Developer | Agent(subagent_type=sonnet-dev) | Complex implementation | code + `artifacts/dev-report-<task-id>.json` |
+| Developer | Agent(subagent_type=haiku-dev) | Simple implementation | code + `artifacts/dev-report-<task-id>.json` |
+| Reviewer | Agent(subagent_type=code-reviewer) | Code review, quality gate | `artifacts/review-report-<task-id>.json` |
 
 ## Directory Layout
 
@@ -73,15 +76,16 @@ The main agent must behave as a pure orchestrator:
 - Active run pointer: `.claude/selfwork/active`
 - Run directory: `.claude/selfwork/runs/<run-id>/`
   - `state.json` — Master state file (schema: `references/schemas/run-state.schema.json`)
-  - `artifacts/` — Agent output contracts
+  - `artifacts/` — Agent output contracts consumed by runtime scripts
     - `info-collection.json`
     - `requirement-analysis.json`
     - `product-spec.json`
     - `plan.json`
     - `dev-report-<task-id>.json`
     - `review-report-<task-id>.json`
+  - product-design and architecture phases may also write human-readable spec documents under `.claude/selfwork/docs/`
 - Task specs: `.claude/selfwork/task-specs/<run-id>/subtasks/tN.md`
-- Authoritative specs: `devDocs/spec/selfwork/<topic>.md`
+- Authoritative specs: `.claude/selfwork/docs/<topic>.md`
 
 ## State Model
 
@@ -95,6 +99,12 @@ planning → intent_recognition → info_collecting → analyzing → designing 
                                                                                                blocked
 ```
 
+### design_status Gate
+
+- `draft` — Product design produced or pending confirmation
+- `approved` — User confirmed, specification phase may begin
+- `obsolete` — Needs re-design
+
 ### spec_status Gate
 
 - `draft` — Architect producing/pending review
@@ -103,100 +113,36 @@ planning → intent_recognition → info_collecting → analyzing → designing 
 
 ### Task Status
 
-`pending → dispatched → agent_done → reviewing → completed | failed`
+`pending → dispatching → dispatched → agent_done → reviewing → completed | failed`
 
 ## CEO Orchestration Flow
 
-Detailed workflow is in `references/operational-workflow.md`. Summary below.
+The detailed, phase-by-phase workflow lives in `references/operational-workflow.md`. Use that file when you need the full lifecycle.
 
-### Phase 0: Bootstrap
+The core contract is:
+1. Bootstrap or resume from project-local `.claude/selfwork/`.
+2. Reconcile runtime state with `scripts/reconcile-state.ts` before ordinary execution decisions.
+3. Compute the next action with `scripts/dispatch-next.ts`.
+4. Build the executable dispatch plan with `scripts/execute-next.ts`.
+5. Reserve dispatch state with `scripts/dispatch-executor.ts` before any subagent launch.
+6. If work is dispatchable, launch the required subagent instead of implementing directly.
+7. Consult the user only at explicit human gates: requirement clarification, design confirmation, spec approval, or blocked/manual intervention.
+8. During ordinary execution, continue automatically until the workflow reaches a human gate, `completed`, or `blocked`.
 
-1. Ensure the current repository contains `.claude/selfwork/`
-2. If missing, initialize it with:
-   - `.claude/selfwork/runs/`
-   - `.claude/selfwork/task-specs/`
-   - `.claude/selfwork/archive/`
-3. Check `.claude/selfwork/active`
-4. Exists → read `state.json`, resume from breakpoint
-5. Missing → bootstrap must create the first run, including:
-   - `.claude/selfwork/runs/<run-id>/state.json`
-   - `.claude/selfwork/runs/<run-id>/artifacts/`
-   - `.claude/selfwork/task-specs/<run-id>/subtasks/`
-   - `.claude/selfwork/active`
-6. Enter Phase 1 with the newly created run
+### Human Gates
 
-Bootstrap helper script: `scripts/bootstrap.ts`
+- `analyzing` may require user clarification when the requirement remains unclear.
+- `designing` auto-dispatches `product-designer` while either `product-spec.json` or the design doc is missing.
+- `designing` becomes a human confirmation gate once `product-spec.json` and the design doc exist, and remains there until `design_status=approved`.
+- `specifying` must stop for spec approval until `spec_status=approved`.
+- `blocked` must be reported to the user with the blocking reason.
 
-### Phase 1: Planning (status=planning)
+### Execution Rules
 
-1. Identify `input_source`: `interactive` | `external_plan` | `mixed`
-2. Create run, initialize `state.json`
-3. Set active pointer
-
-### Phase 2: Intent Recognition (status=intent_recognition)
-
-1. Analyze user input to determine requirement clarity
-2. **If clear requirement** (has PRD, issue, spec) → skip to Phase 6 (specifying)
-3. **If unclear/vague** → proceed to Phase 3 (info collecting)
-4. Update `intent_recognition_result`: `clear` | `needs_research`
-
-### Phase 3: Info Collecting (status=info_collecting)
-
-1. Run `reconcile-state.ts`
-2. Run `dispatch-next.ts` and `execute-next.ts`
-3. Run `dispatch-executor.ts` to reserve dispatch state
-4. Launch Info Collector agent immediately
-5. After the agent returns, run `reconcile-state.ts` again and pass control to Requirement Analyst if the artifact is complete
-
-### Phase 4: Analysis (status=analyzing)
-
-1. Run `reconcile-state.ts`
-2. Run `dispatch-next.ts` and `execute-next.ts`
-3. Run `dispatch-executor.ts` to reserve dispatch state
-4. Launch Requirement Analyst agent immediately
-5. After the agent returns, run `reconcile-state.ts`
-6. If `clarity=unclear` → ask user clarifying questions, re-dispatch
-7. If `clarity=clear|partial` → proceed to design
-
-### Phase 5: Design (status=designing)
-
-1. Run `reconcile-state.ts`
-2. Run `dispatch-next.ts` and `execute-next.ts`
-3. Run `dispatch-executor.ts` to reserve dispatch state
-4. Launch Product Designer agent immediately
-5. Read product-spec.md and product-spec.json
-6. Present design summary to user
-7. **Gate**: User confirms design to proceed
-
-### Phase 6: Specification (status=specifying)
-
-1. Run `reconcile-state.ts`
-2. Run `dispatch-next.ts` and `execute-next.ts`
-3. If the next action is dispatchable architect work, run `dispatch-executor.ts` to reserve dispatch state
-4. Launch Architect agent immediately
-5. Architect outputs technical spec file + `plan.json`
-6. Re-run `reconcile-state.ts` and present spec summary to user for confirmation
-7. **Gate**: `spec_status` must be `approved` to proceed
-
-### Phase 7: Execution (status=executing)
-
-1. Generate subtask specs from `plan.json` (see `references/subtask-template.md`)
-2. Run `reconcile-state.ts` before every dispatch decision
-3. Run `dispatch-next.ts` and `execute-next.ts`
-4. Run `dispatch-executor.ts` to reserve dispatch state before any launch
-5. Dispatch Developer agents by complexity using the execution plan jobs
-6. On completion, re-run `reconcile-state.ts`, then dispatch Reviewer for each `agent_done` task
-7. Handle verdicts automatically through review artifacts: approved → complete, changes_requested → retry, blocked → fail
-8. Automatic progression rules:
-   - dispatchable pending task → dispatch immediately to the correct developer subagent
-   - `agent_done` task → dispatch reviewer immediately
-   - retryable failed task → re-dispatch automatically with failure context
-9. Do not ask the user whether to continue normal task execution in this phase
-
-### Phase 8: Completion (status=completed)
-
-1. All tasks completed → clear active pointer
-2. Summarize delivery to user: changed files, test status, quality report
+- In `executing`, dispatchable pending work must be delegated immediately to the correct developer subagent.
+- In `executing`, `agent_done` work must be handed off to the reviewer automatically.
+- Retryable failures should be re-dispatched automatically with failure context.
+- Do not ask the user whether ordinary execution should continue once the work has been decomposed.
 
 ## Agent Dispatch Templates
 
@@ -221,7 +167,8 @@ Agent tool:
 Agent tool:
 - subagent_type: product-designer
 - prompt: requirement analysis + output paths
-- Key: must write product-spec.md and product-spec.json
+- Key: must write `.claude/selfwork/docs/<topic>.md` and `artifacts/product-spec.json`
+- Runtime rule: dispatch automatically only while design artifacts are missing; once they exist, wait at the design approval gate until `design_status=approved`
 ```
 
 ### Architect Dispatch
@@ -237,7 +184,7 @@ Agent tool:
 Agent tool:
 - subagent_type: haiku-dev (small) or sonnet-dev (medium/hard)
 - prompt: subtask spec content + dev-report output path
-- Key: must write dev-report.json on completion
+- Key: must write dev-report-<task-id>.json on completion
 ```
 
 ### Reviewer Dispatch
@@ -245,7 +192,7 @@ Agent tool:
 Agent tool:
 - subagent_type: code-reviewer
 - prompt: dev-report + spec reference + review-report output path
-- Key: must run quality gates and write review-report.json
+- Key: must run quality gates and write review-report-<task-id>.json
 ```
 
 ## Decision Rules
@@ -257,6 +204,8 @@ Agent tool:
 | small | haiku-dev |
 | medium | sonnet-dev |
 | hard | sonnet-dev |
+
+Retry dispatch may escalate to `sonnet-dev` when failure context or review feedback makes the retry materially harder than the original task.
 
 ### Retry Strategy
 

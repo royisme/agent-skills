@@ -31,6 +31,7 @@ type Task = {
 type RunState = {
   run_id?: string
   status?: string
+  spec_path?: string | null
   tasks?: Task[]
 }
 
@@ -85,13 +86,24 @@ function getTaskAgentType(task: Task) {
   return task.complexity === 'small' ? 'haiku-dev' : 'sonnet-dev'
 }
 
-function getExpectedArtifacts(runId: string, instruction: DispatchInstruction, taskId: string) {
+function getExpectedArtifacts(runId: string, instruction: DispatchInstruction, taskId: string, specPath?: string | null) {
   const runArtifactsDir = resolve(RUNS_DIR, runId, 'artifacts')
   if (instruction.phase === 'review') {
     return [resolve(runArtifactsDir, `review-report-${taskId}.json`)]
   }
+  if (instruction.phase === 'designing') {
+    const artifacts = [resolve(runArtifactsDir, 'product-spec.json')]
+    if (specPath) {
+      artifacts.push(resolve(REPO_ROOT, specPath))
+    }
+    return artifacts
+  }
   if (instruction.phase === 'specifying') {
-    return [resolve(runArtifactsDir, 'plan.json')]
+    const artifacts = [resolve(runArtifactsDir, 'plan.json')]
+    if (specPath) {
+      artifacts.push(resolve(REPO_ROOT, specPath))
+    }
+    return artifacts
   }
   return [resolve(runArtifactsDir, `dev-report-${taskId}.json`)]
 }
@@ -138,6 +150,7 @@ async function main() {
   const state = await readJson<RunState>(resolve(RUNS_DIR, instruction.run_id, 'state.json'))
   const tasks = Array.isArray(state?.tasks) ? state!.tasks! : []
   const taskMap = new Map(tasks.map((task) => [task.id, task]))
+  const specPath = state?.spec_path ?? null
 
   if (instruction.action !== 'dispatch_subagent') {
     print({
@@ -149,33 +162,43 @@ async function main() {
     return
   }
 
-  const taskIds = instruction.task_ids ?? []
+  const taskIds = instruction.phase === 'designing' ? ['designing'] : instruction.phase === 'specifying' ? ['specifying'] : instruction.task_ids ?? []
   const jobs: DispatchJob[] = taskIds.map((taskId) => {
     const task = taskMap.get(taskId)
     const subagentType =
       instruction.phase === 'review'
         ? 'code-reviewer'
-        : instruction.subagent_type === 'developer-by-complexity'
-          ? getTaskAgentType(task ?? { id: taskId })
-          : instruction.subagent_type ?? getTaskAgentType(task ?? { id: taskId })
+        : instruction.phase === 'designing'
+          ? 'product-designer'
+          : instruction.phase === 'specifying'
+            ? 'architect'
+            : instruction.subagent_type === 'developer-by-complexity'
+              ? getTaskAgentType(task ?? { id: taskId })
+              : instruction.subagent_type ?? getTaskAgentType(task ?? { id: taskId })
 
     return {
       task_id: taskId,
-      title: task?.title ?? null,
+      title:
+        instruction.phase === 'designing'
+          ? 'Product design'
+          : instruction.phase === 'specifying'
+            ? 'Architecture specification'
+            : task?.title ?? null,
       subagent_type: subagentType,
       spec_path:
         instruction.phase === 'review'
           ? null
-          : instruction.phase === 'specifying'
-            ? null
+          : instruction.phase === 'designing' || instruction.phase === 'specifying'
+            ? (specPath ? resolve(REPO_ROOT, specPath) : null)
             : resolve(TASK_SPECS_DIR, instruction.run_id!, 'subtasks', `${taskId}.md`),
-      expected_artifacts: getExpectedArtifacts(instruction.run_id!, instruction, taskId),
-      complexity: task?.complexity ?? null,
+      expected_artifacts: getExpectedArtifacts(instruction.run_id!, instruction, taskId, specPath),
+      complexity: instruction.phase === 'designing' || instruction.phase === 'specifying' ? 'medium' : task?.complexity ?? null,
       task_type: task?.task_type ?? null,
       criticality: task?.criticality ?? null,
       test_command: task?.test_command ?? null,
     }
   })
+
 
   print({
     ok: true,

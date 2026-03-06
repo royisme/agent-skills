@@ -16,11 +16,19 @@ This document is a human-readable supplement. On conflict, the JSON Schema takes
 | `intent_recognition` | Determine whether the request is already well specified | Planning complete |
 | `info_collecting` | Info collector gathers context and references | Intent needs research |
 | `analyzing` | Requirement analyst structures requirements | Research complete or requirement provided |
-| `designing` | Product designer produces product spec | Requirements sufficiently clear |
-| `specifying` | Architect agent producing technical spec and plan | Product design ready or clear requirement path |
+| `designing` | Product designer produces product spec, then waits at design confirmation gate | Requirements sufficiently clear |
+| `specifying` | Architect agent producing technical spec and plan | Product design approved or clear requirement path |
 | `executing` | Developer + Reviewer loop | spec_status=approved |
 | `completed` | All tasks done | All tasks completed |
 | `blocked` | Unrecoverable blockage | Max retries exceeded / architectural issue |
+
+### design_status
+
+| Value | Description |
+|-------|-------------|
+| `draft` | Product design produced or pending confirmation |
+| `approved` | User confirmed, specification may proceed |
+| `obsolete` | Needs re-design |
 
 ### spec_status
 
@@ -80,7 +88,7 @@ Each artifact has a corresponding JSON Schema: `references/schemas/<name>.schema
 | intent_recognition → specifying | Request already has clear specification input |
 | info_collecting → analyzing | info-collection.json exists |
 | analyzing → designing | requirement-analysis.json exists and is usable |
-| designing → specifying | product-spec.json exists |
+| designing → specifying | product-spec.json exists + design doc exists + design_status=approved |
 | specifying → executing | plan.json exists + spec_status=approved |
 | executing → completed | All task status=completed |
 | any → blocked | Unrecoverable error |
