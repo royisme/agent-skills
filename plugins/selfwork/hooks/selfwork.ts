@@ -226,21 +226,33 @@ async function main() {
     return
   }
 
-  const reconcileProc = runScript(RECONCILE_SCRIPT)
-  if (!reconcileProc.success) {
-    output({ decision: 'block', reason: `[selfwork] reconcile-state.ts failed: ${decodeStdout(reconcileProc.stderr).trim()}` })
+  let runId = ''
+  try {
+    runId = (await readFile(ACTIVE_FILE, 'utf8')).trim()
+  } catch {
+    process.exit(0)
     return
   }
 
-  const runId = (await readFile(ACTIVE_FILE, 'utf8')).trim()
+  if (!runId) {
+    process.exit(0)
+    return
+  }
+
   if (!isValidRunId(runId)) {
-    output({ decision: 'block', reason: `[selfwork] Active run id is invalid: ${runId}` })
+    process.exit(0)
     return
   }
 
   const stateFilePath = resolve(RUNS_DIR, runId, 'state.json')
   if (!existsSync(stateFilePath)) {
-    output({ decision: 'block', reason: `[selfwork] state.json is missing for active run: ${runId}` })
+    process.exit(0)
+    return
+  }
+
+  const reconcileProc = runScript(RECONCILE_SCRIPT)
+  if (!reconcileProc.success) {
+    output({ decision: 'block', reason: `[selfwork] reconcile-state.ts failed: ${decodeStdout(reconcileProc.stderr).trim()}` })
     return
   }
 
