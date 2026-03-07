@@ -50,7 +50,9 @@ The main agent must behave as a pure orchestrator:
 - must use `scripts/dispatch-executor.ts` to reserve dispatch work in state before launching subagents
 - must treat `dispatch-next.ts` and `execute-next.ts` as the authoritative orchestration protocol
 - must treat a selfwork hook `instruction` payload as authoritative when the hook provides one
-- must immediately execute `instruction.action=dispatch_subagent` by launching the required subagent(s)
+- must immediately execute `instruction.action=dispatch_subagent` by launching the required subagent(s) without waiting for another user turn
+- when the hook returns ordinary-execution dispatch instructions, continue the orchestration loop automatically instead of asking whether to continue
+- if `instruction.mode=parallel`, launch all independent Agent tool calls in one assistant message
 - must ask the user only at explicit human gates:
   - requirement clarification
   - design confirmation

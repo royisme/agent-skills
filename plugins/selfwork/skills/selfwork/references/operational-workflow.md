@@ -139,10 +139,11 @@ For each task in `execution_order`:
 6. If a task is `agent_done`, the CEO must dispatch review automatically.
 7. If a task is retryable, the CEO must re-dispatch automatically with failure context.
 8. When the hook returns a structured `instruction`, that instruction is the authoritative next-action protocol.
-9. `instruction.action = dispatch_subagent` must be executed immediately by the CEO.
-10. Design-phase product-designer dispatch and specification-phase architect dispatch both follow the same protocol: reconcile → dispatch-next → execute-next → dispatch-executor → Agent launch.
-11. Normal execution does not require repeated user confirmation.
-12. The user is consulted only at explicit human gates or blocked/manual intervention states.
+9. `instruction.action = dispatch_subagent` must be executed immediately by the CEO without waiting for another user turn.
+10. If `instruction.mode = parallel`, the CEO must launch all independent subagents in one assistant message with multiple Agent tool calls.
+11. Design-phase product-designer dispatch and specification-phase architect dispatch both follow the same protocol: reconcile → dispatch-next → execute-next → dispatch-executor → Agent launch.
+12. Normal execution does not require repeated user confirmation.
+13. The user is consulted only at explicit human gates or blocked/manual intervention states.
 
 ## Safety Constraints
 

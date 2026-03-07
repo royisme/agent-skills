@@ -50,6 +50,7 @@ type Task = {
   last_artifact?: string | null
   last_error?: string | null
   updated_at?: string
+  spec_source?: string
 }
 
 type RunState = {
@@ -76,6 +77,24 @@ type ProductSpec = {
   spec_path?: string
 }
 
+type PlanTask = {
+  id: string
+  title?: string
+  dependencies?: string[]
+  blocked_by?: string[]
+  complexity?: 'small' | 'medium' | 'hard'
+  agent_type?: string
+  task_type?: 'tdd' | 'non_tdd'
+  criticality?: 'critical' | 'normal'
+  test_command?: string
+}
+
+type Plan = {
+  run_id?: string
+  spec_path?: string
+  tasks?: PlanTask[]
+}
+
 type ReviewIssue = {
   description?: string
 }
@@ -92,8 +111,10 @@ type DevReport = {
 type FixtureExpectations = {
   require_active_run?: boolean
   expected_status?: RunStatus
+  expected_reconciled_status?: RunStatus
   expected_design_status?: GateStatus
   expected_spec_status?: SpecStatus
+  expected_blocked_reason_includes?: string
   require_spec_path?: boolean
   require_spec_path_exists?: boolean
   required_run_artifacts?: string[]
@@ -108,6 +129,7 @@ type FixtureExpectations = {
   expected_phase?: string
   expected_subagent_type?: string | null
   expected_mode?: 'serial' | 'parallel' | null
+  expect_hook_continues_ordinary_execution?: boolean
   baseline?: {
     mode: BaselineMode
     skill_name?: string
@@ -272,6 +294,38 @@ function firstIssueDescription(report: ReviewReport | null) {
     (issue) => typeof issue.description === 'string' && issue.description.trim().length > 0,
   )
   return first?.description?.trim() ?? null
+}
+
+function normalizePlanBlockedBy(task: PlanTask) {
+  if (Array.isArray(task.blocked_by)) {
+    return task.blocked_by
+  }
+  if (Array.isArray(task.dependencies)) {
+    return task.dependencies
+  }
+  return []
+}
+
+function normalizePlanTask(task: PlanTask, existing: Task | undefined, specSource: string | null): Task {
+  return {
+    id: task.id,
+    title: task.title,
+    status: existing?.status ?? 'pending',
+    blocked_by: normalizePlanBlockedBy(task),
+    review_status: existing?.review_status ?? 'pending',
+    retry_count: existing?.retry_count ?? 0,
+    complexity: task.complexity,
+    agent_type: task.agent_type,
+    agent_id: existing?.agent_id ?? null,
+    task_type: task.task_type,
+    criticality: task.criticality,
+    test_command: task.test_command,
+    dispatch_count: existing?.dispatch_count ?? 0,
+    last_artifact: existing?.last_artifact ?? null,
+    last_error: existing?.last_error ?? null,
+    updated_at: existing?.updated_at,
+    spec_source: specSource ?? existing?.spec_source,
+  }
 }
 
 function cloneState<T>(value: T): T {
@@ -446,14 +500,42 @@ async function reconcilePhase(state: RunState, runId: string, runtimeRoot: strin
   }
 
   if (state.status === 'specifying') {
+    const planPath = artifactPath('plan.json')
     const resolvedSpecPath = resolveSpecPath()
-    if (
-      existsSync(artifactPath('plan.json')) &&
-      resolvedSpecPath &&
-      existsSync(resolvedSpecPath) &&
+    const hasApprovedSpecInputs =
+      existsSync(planPath) &&
+      Boolean(resolvedSpecPath && existsSync(resolvedSpecPath)) &&
       state.spec_status === 'approved'
-    ) {
+
+    if (existsSync(planPath)) {
+      const plan = await readJson<Plan>(planPath)
+      const planTasks = Array.isArray(plan?.tasks) ? plan.tasks : []
+      const currentTasks = Array.isArray(state.tasks) ? state.tasks : []
+      const currentById = new Map(currentTasks.map((task) => [task.id, task]))
+      const specSource = plan?.spec_path ?? state.spec_path ?? null
+      const syncedTasks = planTasks.map((task) => normalizePlanTask(task, currentById.get(task.id), specSource))
+      const before = JSON.stringify(currentTasks)
+      const after = JSON.stringify(syncedTasks)
+      state.tasks = syncedTasks
+      if (before !== after) {
+        transitions.push(`tasks synced from plan.json (${syncedTasks.length} tasks)`)
+      }
+
+      const missingCriticalTddCommands = syncedTasks
+        .filter((task) => task.task_type === 'tdd' && task.criticality === 'critical' && !task.test_command)
+        .map((task) => task.id)
+
+      if (hasApprovedSpecInputs && missingCriticalTddCommands.length > 0) {
+        state.status = 'blocked'
+        state.blocked_reason = `Critical TDD tasks missing test_command before execution: ${missingCriticalTddCommands.join(', ')}`
+        transitions.push('status specifying -> blocked (missing critical tdd test_command)')
+        return
+      }
+    }
+
+    if (hasApprovedSpecInputs) {
       state.status = 'executing'
+      state.blocked_reason = null
       transitions.push('status specifying -> executing')
     }
   }
@@ -1093,8 +1175,28 @@ async function main() {
   const summaryAfter = summarizeState(reconciledState, activeRun)
   const dispatchInstruction = computeDispatchInstruction(reconciledState, activeRun, runtimeRoot)
   const executionPlan = buildExecutionPlan(dispatchInstruction, reconciledState, runtimeRoot, activeRun)
+  const predictedHookDecision =
+    reconciledState.status === 'blocked'
+      ? 'block'
+      : reconciledState.status !== 'executing'
+        ? 'allow'
+        : dispatchInstruction.action === 'dispatch_subagent'
+          ? 'approve'
+          : dispatchInstruction.action === 'await_human_gate' || dispatchInstruction.action === 'blocked'
+            ? 'block'
+            : 'allow'
 
-  if (expectations.expected_status) {
+  if (expectations.expected_reconciled_status) {
+    scenarioChecks.push(
+      makeCheck(
+        'post-reconcile status stays on expected branch',
+        reconciledState.status === expectations.expected_reconciled_status,
+        expectations.expected_reconciled_status,
+        reconciledState.status ?? null,
+        transitions.join('; ') || 'no transitions',
+      ),
+    )
+  } else if (expectations.expected_status) {
     scenarioChecks.push(
       makeCheck(
         'post-reconcile status stays on expected branch',
@@ -1102,6 +1204,17 @@ async function main() {
         expectations.expected_status,
         reconciledState.status ?? null,
         transitions.join('; ') || 'no transitions',
+      ),
+    )
+  }
+
+  if (expectations.expected_blocked_reason_includes) {
+    scenarioChecks.push(
+      makeCheck(
+        'blocked reason includes expected text',
+        typeof reconciledState.blocked_reason === 'string' && reconciledState.blocked_reason.includes(expectations.expected_blocked_reason_includes),
+        expectations.expected_blocked_reason_includes,
+        reconciledState.blocked_reason ?? null,
       ),
     )
   }
@@ -1150,6 +1263,17 @@ async function main() {
     )
   }
 
+  if (typeof expectations.expect_hook_continues_ordinary_execution === 'boolean') {
+    scenarioChecks.push(
+      makeCheck(
+        'hook ordinary execution continuation',
+        expectations.expect_hook_continues_ordinary_execution ? predictedHookDecision === 'approve' : predictedHookDecision !== 'approve',
+        expectations.expect_hook_continues_ordinary_execution ? 'approve' : 'not approve',
+        predictedHookDecision,
+      ),
+    )
+  }
+
   const baselineStatus = await determineBaselineStatus(metadata, caseDir)
 
   for (const check of scenarioChecks) {
@@ -1182,9 +1306,13 @@ async function main() {
       reconcile: {
         transitions,
         resulting_status: reconciledState.status ?? null,
+        blocked_reason: reconciledState.blocked_reason ?? null,
       },
       dispatch_next: dispatchInstruction,
       execute_next: executionPlan,
+      hook: {
+        decision: predictedHookDecision,
+      },
     },
     baseline_status: baselineStatus,
     issues,

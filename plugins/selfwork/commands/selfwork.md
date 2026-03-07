@@ -29,6 +29,8 @@ Execution rules:
 - If work is dispatchable, the main agent must launch the appropriate subagent instead of implementing, testing, or reviewing directly.
 - If a selfwork hook returns an `instruction`, treat that instruction as authoritative for that stop-hook event.
 - Treat `dispatch-next.ts` output and `execute-next.ts` execution plan as the primary orchestration protocol throughout the run.
+- For ordinary execution, a hook `instruction.action=dispatch_subagent` means continue immediately; do not wait for another user turn and do not ask whether to continue.
+- If `instruction.mode=parallel`, launch all independent subagents in one assistant message with multiple Agent tool calls.
 - Do not ask the user whether to continue normal execution once a task has been decomposed, unless the workflow is at a human gate or blocked state.
 
 Dispatch protocol:

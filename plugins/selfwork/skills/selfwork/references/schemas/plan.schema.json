@@ -11,6 +11,20 @@
       "items": {
         "type": "object",
         "required": ["id", "title", "task_type", "criticality"],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "task_type": { "const": "tdd" },
+                "criticality": { "const": "critical" }
+              },
+              "required": ["task_type", "criticality"]
+            },
+            "then": {
+              "required": ["test_command"]
+            }
+          }
+        ],
         "properties": {
           "id": { "type": "string" },
           "title": { "type": "string" },

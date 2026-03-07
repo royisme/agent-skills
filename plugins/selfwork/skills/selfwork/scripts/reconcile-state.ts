@@ -24,6 +24,7 @@ type Task = {
   last_artifact?: string | null
   last_error?: string | null
   updated_at?: string
+  spec_source?: string
 }
 
 type GateStatus = 'draft' | 'approved' | 'obsolete'
@@ -62,6 +63,24 @@ type ReviewReport = {
 
 type ProductSpec = {
   spec_path?: string
+}
+
+type PlanTask = {
+  id: string
+  title?: string
+  dependencies?: string[]
+  blocked_by?: string[]
+  complexity?: 'small' | 'medium' | 'hard'
+  agent_type?: string
+  task_type?: 'tdd' | 'non_tdd'
+  criticality?: 'critical' | 'normal'
+  test_command?: string
+}
+
+type Plan = {
+  run_id?: string
+  spec_path?: string
+  tasks?: PlanTask[]
 }
 
 const REPO_ROOT = resolve(process.cwd())
@@ -111,6 +130,67 @@ function firstIssueDescription(report: ReviewReport | null) {
   return first?.description?.trim() ?? null
 }
 
+function normalizeBlockedBy(task: PlanTask) {
+  if (Array.isArray(task.blocked_by)) {
+    return task.blocked_by
+  }
+  if (Array.isArray(task.dependencies)) {
+    return task.dependencies
+  }
+  return []
+}
+
+function normalizePlanTask(task: PlanTask, existing: Task | undefined, specSource: string | null): Task {
+  return {
+    id: task.id,
+    title: task.title,
+    status: existing?.status ?? 'pending',
+    blocked_by: normalizeBlockedBy(task),
+    review_status: existing?.review_status ?? 'pending',
+    retry_count: existing?.retry_count ?? 0,
+    complexity: task.complexity,
+    agent_type: task.agent_type,
+    agent_id: existing?.agent_id ?? null,
+    task_type: task.task_type,
+    criticality: task.criticality,
+    test_command: task.test_command,
+    dispatch_count: existing?.dispatch_count ?? 0,
+    last_artifact: existing?.last_artifact ?? null,
+    last_error: existing?.last_error ?? null,
+    updated_at: existing?.updated_at ?? now(),
+    spec_source: specSource ?? existing?.spec_source,
+  }
+}
+
+async function syncTasksFromPlan(state: RunState, runId: string, transitions: string[]) {
+  const planPath = artifactPath(runId, 'plan.json')
+  if (!existsSync(planPath)) {
+    return { synced: false, missingCriticalTddCommands: [] as string[] }
+  }
+
+  const plan = await readJson<Plan>(planPath)
+  const planTasks = Array.isArray(plan?.tasks) ? plan.tasks : []
+  const currentTasks = Array.isArray(state.tasks) ? state.tasks : []
+  const currentById = new Map(currentTasks.map((task) => [task.id, task]))
+  const specSource = plan?.spec_path ?? state.spec_path ?? null
+
+  const syncedTasks = planTasks.map((task) => normalizePlanTask(task, currentById.get(task.id), specSource))
+  const before = JSON.stringify(currentTasks)
+  const after = JSON.stringify(syncedTasks)
+
+  state.tasks = syncedTasks
+
+  if (before !== after) {
+    transitions.push(`tasks synced from plan.json (${syncedTasks.length} tasks)`)
+  }
+
+  const missingCriticalTddCommands = syncedTasks
+    .filter((task) => task.task_type === 'tdd' && task.criticality === 'critical' && !task.test_command)
+    .map((task) => task.id)
+
+  return { synced: true, missingCriticalTddCommands }
+}
+
 async function reconcilePhase(state: RunState, runId: string, transitions: string[]) {
   const current = state.status ?? 'planning'
 
@@ -139,13 +219,23 @@ async function reconcilePhase(state: RunState, runId: string, transitions: strin
 
   if (state.status === 'specifying') {
     const resolvedSpecPath = resolveSpecPath(state)
-    if (
+    const hasApprovedSpecInputs =
       existsSync(artifactPath(runId, 'plan.json')) &&
-      resolvedSpecPath &&
-      existsSync(resolvedSpecPath) &&
+      Boolean(resolvedSpecPath && existsSync(resolvedSpecPath)) &&
       state.spec_status === 'approved'
-    ) {
+
+    const { missingCriticalTddCommands } = await syncTasksFromPlan(state, runId, transitions)
+
+    if (hasApprovedSpecInputs) {
+      if (missingCriticalTddCommands.length > 0) {
+        state.status = 'blocked'
+        state.blocked_reason = `Critical TDD tasks missing test_command before execution: ${missingCriticalTddCommands.join(', ')}`
+        transitions.push('status specifying -> blocked (missing critical tdd test_command)')
+        return
+      }
+
       state.status = 'executing'
+      state.blocked_reason = null
       transitions.push('status specifying -> executing')
     }
   }
@@ -256,6 +346,7 @@ async function main() {
         run_id: runId,
         status: state.status ?? null,
         transitions,
+        blocked_reason: state.blocked_reason ?? null,
       },
       null,
       2,

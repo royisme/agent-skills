@@ -307,8 +307,17 @@ async function main() {
 
   if (instruction.action === 'dispatch_subagent') {
     output({
+      decision: 'approve',
+      reason: `[selfwork] Auto-continue dispatch for phase=${instruction.phase}${instruction.task_ids?.length ? ` tasks=${instruction.task_ids.join(',')}` : ''}`,
+      instruction,
+    })
+    return
+  }
+
+  if (instruction.action === 'await_human_gate') {
+    output({
       decision: 'block',
-      reason: `[selfwork] Dispatch required for phase=${instruction.phase}${instruction.task_ids?.length ? ` tasks=${instruction.task_ids.join(',')}` : ''}`,
+      reason: `[selfwork] HUMAN GATE: ${instruction.notes?.join(' ') ?? 'User confirmation required.'}`,
       instruction,
     })
     return
