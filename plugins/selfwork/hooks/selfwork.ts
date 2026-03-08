@@ -34,10 +34,16 @@ type DispatchState = {
   tasks?: Array<{
     id: string
     status?: 'pending' | 'dispatching' | 'dispatched' | 'agent_done' | 'reviewing' | 'completed' | 'failed'
+    retry_count?: number
     task_type?: 'tdd' | 'non_tdd'
     criticality?: 'critical' | 'normal'
     test_command?: string
   }>
+}
+
+function hasRetryableFailedTasks(state: DispatchState) {
+  const maxRetries = typeof state.max_retries === 'number' ? state.max_retries : 2
+  return (state.tasks ?? []).some((task) => task.status === 'failed' && (task.retry_count ?? 0) < maxRetries)
 }
 
 const REPO_ROOT = resolve(process.cwd())
@@ -213,17 +219,14 @@ async function main() {
     input = JSON.parse(raw)
   } catch {
     process.exit(0)
-    return
   }
 
   if (input.stop_hook_active) {
     process.exit(0)
-    return
   }
 
   if (!existsSync(ACTIVE_FILE)) {
     process.exit(0)
-    return
   }
 
   let runId = ''
@@ -231,23 +234,19 @@ async function main() {
     runId = (await readFile(ACTIVE_FILE, 'utf8')).trim()
   } catch {
     process.exit(0)
-    return
   }
 
   if (!runId) {
     process.exit(0)
-    return
   }
 
   if (!isValidRunId(runId)) {
     process.exit(0)
-    return
   }
 
   const stateFilePath = resolve(RUNS_DIR, runId, 'state.json')
   if (!existsSync(stateFilePath)) {
     process.exit(0)
-    return
   }
 
   const reconcileProc = runScript(RECONCILE_SCRIPT)
@@ -279,17 +278,16 @@ async function main() {
   if (state.status === 'completed') {
     await clearActiveIfMatchingRun(runId)
     process.exit(0)
-    return
   }
 
-  if (state.status === 'blocked') {
+  if (state.status === 'blocked' && !hasRetryableFailedTasks(state)) {
     output({ decision: 'block', reason: `[selfwork] BLOCKED: ${state.blocked_reason ?? 'Manual intervention required.'}` })
     return
   }
 
-  if (state.status !== 'executing') {
+  const shouldAttemptDispatch = state.status === 'executing' || (state.status === 'blocked' && hasRetryableFailedTasks(state))
+  if (!shouldAttemptDispatch) {
     process.exit(0)
-    return
   }
 
   const dispatchProc = runScript(DISPATCH_NEXT_SCRIPT)
@@ -324,6 +322,15 @@ async function main() {
   }
 
   if (instruction.action === 'blocked') {
+    if (hasRetryableFailedTasks(state)) {
+      output({
+        decision: 'approve',
+        reason: `[selfwork] Auto-continue retry dispatch despite blocked status${instruction.task_ids?.length ? ` tasks=${instruction.task_ids.join(',')}` : ''}`,
+        instruction,
+      })
+      return
+    }
+
     state.status = 'blocked'
     state.updated_at = new Date().toISOString()
     await writeStateAtomically(stateFilePath, state)

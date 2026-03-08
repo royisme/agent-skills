@@ -107,6 +107,11 @@ Break the spec into implementable tasks:
 ### Implementation Plan
 **Write to:** `.claude/selfwork/runs/<run-id>/artifacts/plan.json`
 
+### Task Spec Files
+**Write to:** `.claude/selfwork/task-specs/<run-id>/subtasks/<task-id>.md`
+
+Generate one markdown task-spec per task using the existing runtime task-spec contract (JSON header + markdown body). These files are the execution handoff consumed by dispatch/retry flows and must stay aligned with `plan.json`.
+
 Schema reference: `selfwork-plugin/.claude-plugin/skills/selfwork/references/schemas/plan.schema.json`
 
 ## Output Format
@@ -135,10 +140,11 @@ Schema reference: `selfwork-plugin/.claude-plugin/skills/selfwork/references/sch
 
 ## Rules
 
-1. **Spec and plan only** — never write implementation code
+1. **Spec, plan, and task-specs only** — never write implementation code
 2. **Output valid JSON** — plan.json must conform to schema
 3. **Fixed spec path** — specs must go under `.claude/selfwork/docs/`
-4. **Right-sized tasks** — each task should be completable by one agent in one session
-5. **Follow existing conventions** — match the project's spec style and patterns
-6. **TDD tasks need test commands** — every `critical + tdd` task must have `test_command`
-7. **Trace everything** — every task must reference its `spec_source`
+4. **Write execution handoff files** — every planned task must also produce `.claude/selfwork/task-specs/<run-id>/subtasks/<task-id>.md`
+5. **Right-sized tasks** — each task should be completable by one agent in one session
+6. **Follow existing conventions** — match the project's spec style and patterns
+7. **TDD tasks need test commands** — every `critical + tdd` task must have `test_command`
+8. **Trace everything** — every task must reference its `spec_source`

@@ -69,12 +69,14 @@ The main agent (CEO) only makes dispatch decisions — it never implements. Work
 2. Architect outputs:
    - Spec document → `.claude/selfwork/docs/<topic>.md`
    - Implementation plan → `artifacts/plan.json`
+   - Per-task spec files → `.claude/selfwork/task-specs/<run-id>/subtasks/<task-id>.md` (one per task)
 3. CEO presents spec summary to user, requests confirmation
 4. User confirms → `spec_status=approved`
 5. User requests changes → re-dispatch Architect
 6. **Gate**: `spec_status` must be `approved` to proceed
-7. Sync tasks from plan.json into state.json
-8. Transition to Phase G
+7. `reconcile-state.ts` syncs tasks from `plan.json` into `state.json` and materializes any missing task-spec files (self-healing: if the Architect omitted them, reconcile generates them from `plan.json`)
+8. **Gate**: all expected task-spec files must exist before transition to executing
+9. Transition to Phase G
 
 ## Phase G: Execution Loop (status=executing)
 
@@ -82,11 +84,11 @@ For each task in `execution_order`:
 
 ### G1: Dispatch Developer
 
-1. Generate subtask spec (see subtask-template.md)
+1. Task-spec file at `.claude/selfwork/task-specs/<run-id>/subtasks/<task-id>.md` is the execution handoff contract — it is generated during Phase F and must exist before dispatch
 2. Select agent by complexity:
    - `small` → haiku-dev
    - `medium/hard` → sonnet-dev
-3. Dispatch agent with full subtask spec as prompt
+3. Dispatch agent with task-spec path as the `spec` input
 4. Update task status=dispatched
 
 ### G2: Developer Completes
@@ -123,7 +125,14 @@ For each task in `execution_order`:
 
 ## Phase I: Blocked Handling (status=blocked)
 
-1. Failed tasks exist with no dispatchable work remaining
+**Retryable blocked state** (tasks failed but retry budget remains):
+- `reconcile-state.ts` does **not** transition to `blocked` while any failed task has `retry_count < max_retries`
+- `dispatch-next.ts` returns retry dispatch instructions even from `blocked` status
+- The stop hook allows auto-continue when retryable failed tasks exist
+- Retryable tasks are automatically re-dispatched by the orchestration loop without user intervention
+
+**Terminal blocked state** (all failed tasks exhausted retry budget):
+1. No dispatchable or retryable work remains
 2. Report to user:
    - Failure reasons
    - Review issues
@@ -161,4 +170,5 @@ The hook validates on every agent stop attempt:
 - state.json schema compliance
 - Artifact existence (per phase transition requirements)
 - TDD gate (critical + tdd must have test_command)
-- Blocks non-compliant stop requests
+- **Retryable-failure gate**: if `status=blocked` but any failed task still has retry budget, the hook allows the orchestration loop to continue and dispatch retries — it does **not** hard-block
+- Blocks non-compliant stop requests and terminal-blocked runs

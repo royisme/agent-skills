@@ -20,6 +20,10 @@ type Task = {
   criticality?: 'critical' | 'normal'
 }
 
+function hasRetryableFailedTasks(tasks: Task[], maxRetries: number) {
+  return tasks.some((task) => task.status === 'failed' && (task.retry_count ?? 0) < maxRetries)
+}
+
 type GateStatus = 'draft' | 'approved' | 'obsolete'
 
 type RunState = {
@@ -214,7 +218,7 @@ async function main() {
     return
   }
 
-  if (status === 'blocked') {
+  if (status === 'blocked' && !hasRetryableFailedTasks(tasks, maxRetries)) {
     print({ ok: true, instruction: { action: 'blocked', phase: 'blocked', run_id: runId, notes: ['Run is blocked and requires manual intervention.'] } satisfies NextInstruction })
     return
   }
