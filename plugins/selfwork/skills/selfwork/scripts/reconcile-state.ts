@@ -63,6 +63,22 @@ type ReviewReport = {
   test_result?: 'pass' | 'fail' | 'skipped'
 }
 
+type ClarificationQuestion = {
+  question: string
+  reason: string
+  answered?: boolean
+  answer?: string
+}
+
+type RequirementAnalysis = {
+  run_id?: string
+  original_request?: string
+  summary?: string
+  clarity?: 'clear' | 'partial' | 'unclear'
+  clarification_questions?: ClarificationQuestion[]
+  user_stories?: unknown[]
+}
+
 type ProductSpec = {
   spec_path?: string
 }
@@ -299,16 +315,53 @@ async function syncTasksFromPlan(state: RunState, runId: string, transitions: st
 async function reconcilePhase(state: RunState, runId: string, transitions: string[]) {
   const current = state.status ?? 'planning'
 
+  // Phase: planning → intent_recognition (auto)
+  if (current === 'planning') {
+    state.status = 'intent_recognition'
+    transitions.push('status planning -> intent_recognition')
+  }
+
+  // Phase: intent_recognition → info_collecting (dispatch info-collector if no info yet)
+  if (current === 'intent_recognition' && !existsSync(artifactPath(runId, 'info-collection.json'))) {
+    state.status = 'info_collecting'
+    transitions.push('status intent_recognition -> info_collecting')
+  }
+
+  // Phase: intent_recognition → analyzing (if info already collected)
+  if (current === 'intent_recognition' && existsSync(artifactPath(runId, 'info-collection.json'))) {
+    if (!existsSync(artifactPath(runId, 'requirement-analysis.json'))) {
+      state.status = 'analyzing'
+      transitions.push('status intent_recognition -> analyzing (info available)')
+    }
+  }
+
+  // Phase: info_collecting → analyzing (if info collection was dispatched)
   if (current === 'info_collecting' && existsSync(artifactPath(runId, 'info-collection.json'))) {
     state.status = 'analyzing'
     transitions.push('status info_collecting -> analyzing')
   }
 
+  // Phase: analyzing → designing
+  // But first check if there are clarification questions that need user input
   if (state.status === 'analyzing' && existsSync(artifactPath(runId, 'requirement-analysis.json'))) {
-    state.status = 'designing'
-    transitions.push('status analyzing -> designing')
+    const reqAnalysis = await readJson<RequirementAnalysis>(artifactPath(runId, 'requirement-analysis.json'))
+
+    // If there are clarification questions and they haven't been answered, wait for user
+    const hasUnansweredClarifications =
+      reqAnalysis?.clarification_questions?.some((q: ClarificationQuestion) => !(q as ClarificationQuestion & { answered?: boolean }).answered) ?? false
+
+    if (!hasUnansweredClarifications) {
+      // Move to designing only after clarifications are resolved
+      state.status = 'designing'
+      transitions.push('status analyzing -> designing')
+    } else {
+      // Keep in analyzing, clarification needed
+      state.blocked_reason = 'Clarification questions pending user response'
+      transitions.push('status analyzing -> analyzing (clarification needed)')
+    }
   }
 
+  // Phase: designing → specifying (when design approved)
   if (state.status === 'designing' && existsSync(artifactPath(runId, 'product-spec.json'))) {
     const productSpec = await readJson<ProductSpec>(artifactPath(runId, 'product-spec.json'))
     if (productSpec?.spec_path) {

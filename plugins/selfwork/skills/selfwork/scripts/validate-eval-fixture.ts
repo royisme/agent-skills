@@ -541,7 +541,29 @@ function validateStateConsistency(state: RunState) {
 async function reconcilePhase(state: RunState, runId: string, runtimeRoot: string, transitions: string[]) {
   const artifactPath = (name: string) => resolve(runtimeRoot, 'runs', runId, 'artifacts', name)
   const resolveSpecPath = () => (state.spec_path ? resolve(runtimeRoot, '..', state.spec_path.replace(/^\.claude\//, '')) : null)
+  const current = state.status ?? 'planning'
 
+  // Phase: planning → intent_recognition (auto)
+  if (current === 'planning') {
+    state.status = 'intent_recognition'
+    transitions.push('status planning -> intent_recognition')
+  }
+
+  // Phase: intent_recognition → info_collecting (dispatch info-collector if no info yet)
+  if (current === 'intent_recognition' && !existsSync(artifactPath('info-collection.json'))) {
+    state.status = 'info_collecting'
+    transitions.push('status intent_recognition -> info_collecting')
+  }
+
+  // Phase: intent_recognition → analyzing (if info already collected)
+  if (current === 'intent_recognition' && existsSync(artifactPath('info-collection.json'))) {
+    if (!existsSync(artifactPath('requirement-analysis.json'))) {
+      state.status = 'analyzing'
+      transitions.push('status intent_recognition -> analyzing (info available)')
+    }
+  }
+
+  // Phase: info_collecting → analyzing (if info collection was dispatched)
   if (state.status === 'info_collecting' && existsSync(artifactPath('info-collection.json'))) {
     state.status = 'analyzing'
     transitions.push('status info_collecting -> analyzing')
