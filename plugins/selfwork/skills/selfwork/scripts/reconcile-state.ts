@@ -315,6 +315,11 @@ async function syncTasksFromPlan(state: RunState, runId: string, transitions: st
 async function reconcilePhase(state: RunState, runId: string, transitions: string[]) {
   const current = state.status ?? 'planning'
 
+  // Cache existence checks to avoid redundant I/O
+  const hasInfoCollection = existsSync(artifactPath(runId, 'info-collection.json'))
+  const hasRequirementAnalysis = existsSync(artifactPath(runId, 'requirement-analysis.json'))
+  const hasProductSpec = existsSync(artifactPath(runId, 'product-spec.json'))
+
   // Phase: planning → intent_recognition (auto)
   if (current === 'planning') {
     state.status = 'intent_recognition'
@@ -322,28 +327,28 @@ async function reconcilePhase(state: RunState, runId: string, transitions: strin
   }
 
   // Phase: intent_recognition → info_collecting (dispatch info-collector if no info yet)
-  if (current === 'intent_recognition' && !existsSync(artifactPath(runId, 'info-collection.json'))) {
+  if (current === 'intent_recognition' && !hasInfoCollection) {
     state.status = 'info_collecting'
     transitions.push('status intent_recognition -> info_collecting')
   }
 
   // Phase: intent_recognition → analyzing (if info already collected)
-  if (current === 'intent_recognition' && existsSync(artifactPath(runId, 'info-collection.json'))) {
-    if (!existsSync(artifactPath(runId, 'requirement-analysis.json'))) {
+  if (current === 'intent_recognition' && hasInfoCollection) {
+    if (!hasRequirementAnalysis) {
       state.status = 'analyzing'
       transitions.push('status intent_recognition -> analyzing (info available)')
     }
   }
 
   // Phase: info_collecting → analyzing (if info collection was dispatched)
-  if (current === 'info_collecting' && existsSync(artifactPath(runId, 'info-collection.json'))) {
+  if (current === 'info_collecting' && hasInfoCollection) {
     state.status = 'analyzing'
     transitions.push('status info_collecting -> analyzing')
   }
 
   // Phase: analyzing → designing
   // But first check if there are clarification questions that need user input
-  if (state.status === 'analyzing' && existsSync(artifactPath(runId, 'requirement-analysis.json'))) {
+  if (state.status === 'analyzing' && hasRequirementAnalysis) {
     const reqAnalysis = await readJson<RequirementAnalysis>(artifactPath(runId, 'requirement-analysis.json'))
 
     // If there are clarification questions and they haven't been answered, wait for user
@@ -362,7 +367,7 @@ async function reconcilePhase(state: RunState, runId: string, transitions: strin
   }
 
   // Phase: designing → specifying (when design approved)
-  if (state.status === 'designing' && existsSync(artifactPath(runId, 'product-spec.json'))) {
+  if (state.status === 'designing' && hasProductSpec) {
     const productSpec = await readJson<ProductSpec>(artifactPath(runId, 'product-spec.json'))
     if (productSpec?.spec_path) {
       state.spec_path = productSpec.spec_path

@@ -33,6 +33,7 @@ type RunState = {
   spec_status?: GateStatus
   spec_path?: string | null
   max_retries?: number
+  blocked_reason?: string | null
   tasks?: Task[]
 }
 
@@ -173,6 +174,11 @@ async function main() {
   }
 
   if (status === 'analyzing') {
+    // If blocked by clarification questions, wait for user response instead of re-dispatching
+    if (state.blocked_reason?.includes('Clarification questions')) {
+      print({ ok: true, instruction: { action: 'await_human_gate', phase: 'analyzing', run_id: runId, notes: ['Clarification questions pending user response.'] } satisfies NextInstruction })
+      return
+    }
     print({ ok: true, instruction: { action: 'dispatch_subagent', phase: 'analyzing', run_id: runId, subagent_type: 'requirement-analyst', mode: 'serial', notes: ['Dispatch requirement-analyst to produce requirement-analysis.json.'] } satisfies NextInstruction })
     return
   }

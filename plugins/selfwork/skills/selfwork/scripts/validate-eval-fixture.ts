@@ -108,6 +108,22 @@ type DevReport = {
   test_result?: 'pass' | 'fail' | 'skipped'
 }
 
+type ClarificationQuestion = {
+  question: string
+  reason: string
+  answered?: boolean
+  answer?: string
+}
+
+type RequirementAnalysis = {
+  run_id?: string
+  original_request?: string
+  summary?: string
+  clarity?: 'clear' | 'partial' | 'unclear'
+  clarification_questions?: ClarificationQuestion[]
+  user_stories?: unknown[]
+}
+
 type FixtureExpectations = {
   require_active_run?: boolean
   expected_status?: RunStatus
@@ -543,6 +559,11 @@ async function reconcilePhase(state: RunState, runId: string, runtimeRoot: strin
   const resolveSpecPath = () => (state.spec_path ? resolve(runtimeRoot, '..', state.spec_path.replace(/^\.claude\//, '')) : null)
   const current = state.status ?? 'planning'
 
+  // Cache existence checks to avoid redundant I/O
+  const hasInfoCollection = existsSync(artifactPath('info-collection.json'))
+  const hasRequirementAnalysis = existsSync(artifactPath('requirement-analysis.json'))
+  const hasProductSpec = existsSync(artifactPath('product-spec.json'))
+
   // Phase: planning → intent_recognition (auto)
   if (current === 'planning') {
     state.status = 'intent_recognition'
@@ -550,31 +571,43 @@ async function reconcilePhase(state: RunState, runId: string, runtimeRoot: strin
   }
 
   // Phase: intent_recognition → info_collecting (dispatch info-collector if no info yet)
-  if (current === 'intent_recognition' && !existsSync(artifactPath('info-collection.json'))) {
+  if (current === 'intent_recognition' && !hasInfoCollection) {
     state.status = 'info_collecting'
     transitions.push('status intent_recognition -> info_collecting')
   }
 
   // Phase: intent_recognition → analyzing (if info already collected)
-  if (current === 'intent_recognition' && existsSync(artifactPath('info-collection.json'))) {
-    if (!existsSync(artifactPath('requirement-analysis.json'))) {
+  if (current === 'intent_recognition' && hasInfoCollection) {
+    if (!hasRequirementAnalysis) {
       state.status = 'analyzing'
       transitions.push('status intent_recognition -> analyzing (info available)')
     }
   }
 
   // Phase: info_collecting → analyzing (if info collection was dispatched)
-  if (state.status === 'info_collecting' && existsSync(artifactPath('info-collection.json'))) {
+  if (state.status === 'info_collecting' && hasInfoCollection) {
     state.status = 'analyzing'
     transitions.push('status info_collecting -> analyzing')
   }
 
-  if (state.status === 'analyzing' && existsSync(artifactPath('requirement-analysis.json'))) {
-    state.status = 'designing'
-    transitions.push('status analyzing -> designing')
+  // Phase: analyzing → designing (with clarification question check)
+  if (state.status === 'analyzing' && hasRequirementAnalysis) {
+    const reqAnalysis = await readJson<RequirementAnalysis>(artifactPath('requirement-analysis.json'))
+
+    // If there are clarification questions and they haven't been answered, wait for user
+    const hasUnansweredClarifications =
+      reqAnalysis?.clarification_questions?.some((q: ClarificationQuestion) => !(q as ClarificationQuestion & { answered?: boolean }).answered) ?? false
+
+    if (!hasUnansweredClarifications) {
+      state.status = 'designing'
+      transitions.push('status analyzing -> designing')
+    } else {
+      state.blocked_reason = 'Clarification questions pending user response'
+      transitions.push('status analyzing -> analyzing (clarification needed)')
+    }
   }
 
-  if (state.status === 'designing' && existsSync(artifactPath('product-spec.json'))) {
+  if (state.status === 'designing' && hasProductSpec) {
     const productSpec = await readJson<ProductSpec>(artifactPath('product-spec.json'))
     if (productSpec?.spec_path) {
       state.spec_path = productSpec.spec_path
