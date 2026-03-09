@@ -125,6 +125,9 @@ type FixtureExpectations = {
   forbidden_task_specs?: string[]
   expected_dispatchable_pending_tasks?: number
   expected_agent_done_tasks?: number
+  expected_task_statuses?: Record<string, TaskStatus>
+  expected_task_review_statuses?: Record<string, ReviewStatus>
+  expected_task_last_error_includes?: Record<string, string>
   expected_next_action?: 'none' | 'dispatch_subagent' | 'await_human_gate' | 'blocked'
   expected_phase?: string
   expected_subagent_type?: string | null
@@ -243,8 +246,67 @@ async function readJson<T>(path: string): Promise<T | null> {
   }
 }
 
-function isValidRunId(runId: string) {
+function isValidRunId(runId: string): boolean {
   return runId.length > 0 && runId.length <= 128 && RUN_ID_PATTERN.test(runId) && !runId.includes('..')
+}
+
+function getPredictedHookDecision(
+  status: RunStatus | undefined,
+  action: DispatchInstruction['action'],
+): 'approve' | 'allow' | 'block' {
+  if (status === 'blocked') {
+    return 'block'
+  }
+
+  if (status !== 'executing') {
+    return 'allow'
+  }
+
+  if (action === 'dispatch_subagent') {
+    return 'approve'
+  }
+
+  if (action === 'await_human_gate' || action === 'blocked') {
+    return 'block'
+  }
+
+  return 'allow'
+}
+
+function getExecutionPlanTaskIds(instruction: DispatchInstruction): string[] {
+  if (instruction.phase === 'designing') {
+    return ['designing']
+  }
+
+  if (instruction.phase === 'specifying') {
+    return ['specifying']
+  }
+
+  return instruction.task_ids ?? []
+}
+
+function getExecutionPlanSubagentType(
+  instruction: DispatchInstruction,
+  task: Task | undefined,
+  taskId: string,
+): string {
+  if (instruction.phase === 'review') {
+    return 'code-reviewer'
+  }
+
+  if (instruction.phase === 'designing') {
+    return 'product-designer'
+  }
+
+  if (instruction.phase === 'specifying') {
+    return 'architect'
+  }
+
+  if (instruction.subagent_type === 'developer-by-complexity') {
+    return getTaskAgentType(task ?? { id: taskId })
+  }
+
+  return instruction.subagent_type ?? getTaskAgentType(task ?? { id: taskId })
 }
 
 function normalizeBlockedBy(task: Task) {
@@ -294,6 +356,10 @@ function firstIssueDescription(report: ReviewReport | null) {
     (issue) => typeof issue.description === 'string' && issue.description.trim().length > 0,
   )
   return first?.description?.trim() ?? null
+}
+
+function canConsumeReviewReport(status?: TaskStatus) {
+  return status === 'dispatched' || status === 'reviewing' || status === 'agent_done' || status === 'completed'
 }
 
 function normalizePlanBlockedBy(task: PlanTask) {
@@ -559,10 +625,7 @@ async function reconcileTasks(state: RunState, runId: string, runtimeRoot: strin
       transitions.push(`task ${task.id}: dispatched -> agent_done`)
     }
 
-    if (
-      (task.status === 'reviewing' || task.status === 'agent_done' || task.status === 'completed') &&
-      existsSync(reviewReportPath)
-    ) {
+    if (canConsumeReviewReport(task.status) && existsSync(reviewReportPath)) {
       const reviewReport = await readJson<ReviewReport>(reviewReportPath)
       const verdict = reviewReport?.verdict
       task.last_artifact = reviewReportPath
@@ -834,19 +897,10 @@ function buildExecutionPlan(
     return { ready: false, reason: 'No dispatchable action at this time.', jobs: [] as ExecutionJob[] }
   }
 
-  const taskIds = instruction.phase === 'designing' ? ['designing'] : instruction.phase === 'specifying' ? ['specifying'] : instruction.task_ids ?? []
+  const taskIds = getExecutionPlanTaskIds(instruction)
   const jobs = taskIds.map((taskId) => {
     const task = taskMap.get(taskId)
-    const subagentType =
-      instruction.phase === 'review'
-        ? 'code-reviewer'
-        : instruction.phase === 'designing'
-          ? 'product-designer'
-          : instruction.phase === 'specifying'
-            ? 'architect'
-            : instruction.subagent_type === 'developer-by-complexity'
-              ? getTaskAgentType(task ?? { id: taskId })
-              : instruction.subagent_type ?? getTaskAgentType(task ?? { id: taskId })
+    const subagentType = getExecutionPlanSubagentType(instruction, task, taskId)
 
     return {
       task_id: taskId,
@@ -1175,16 +1229,10 @@ async function main() {
   const summaryAfter = summarizeState(reconciledState, activeRun)
   const dispatchInstruction = computeDispatchInstruction(reconciledState, activeRun, runtimeRoot)
   const executionPlan = buildExecutionPlan(dispatchInstruction, reconciledState, runtimeRoot, activeRun)
-  const predictedHookDecision =
-    reconciledState.status === 'blocked'
-      ? 'block'
-      : reconciledState.status !== 'executing'
-        ? 'allow'
-        : dispatchInstruction.action === 'dispatch_subagent'
-          ? 'approve'
-          : dispatchInstruction.action === 'await_human_gate' || dispatchInstruction.action === 'blocked'
-            ? 'block'
-            : 'allow'
+  const predictedHookDecision = getPredictedHookDecision(
+    reconciledState.status,
+    dispatchInstruction.action,
+  )
 
   if (expectations.expected_reconciled_status) {
     scenarioChecks.push(
@@ -1259,6 +1307,42 @@ async function main() {
         (dispatchInstruction.mode ?? null) === expectations.expected_mode,
         expectations.expected_mode,
         dispatchInstruction.mode ?? null,
+      ),
+    )
+  }
+
+  for (const [taskId, expectedStatus] of Object.entries(expectations.expected_task_statuses ?? {})) {
+    const task = reconciledState.tasks?.find((candidate) => candidate.id === taskId)
+    scenarioChecks.push(
+      makeCheck(
+        `task ${taskId} reconciled status`,
+        task?.status === expectedStatus,
+        expectedStatus,
+        task?.status ?? null,
+      ),
+    )
+  }
+
+  for (const [taskId, expectedReviewStatus] of Object.entries(expectations.expected_task_review_statuses ?? {})) {
+    const task = reconciledState.tasks?.find((candidate) => candidate.id === taskId)
+    scenarioChecks.push(
+      makeCheck(
+        `task ${taskId} review status`,
+        (task?.review_status ?? null) === expectedReviewStatus,
+        expectedReviewStatus,
+        task?.review_status ?? null,
+      ),
+    )
+  }
+
+  for (const [taskId, expectedSnippet] of Object.entries(expectations.expected_task_last_error_includes ?? {})) {
+    const task = reconciledState.tasks?.find((candidate) => candidate.id === taskId)
+    scenarioChecks.push(
+      makeCheck(
+        `task ${taskId} last_error includes expected text`,
+        typeof task?.last_error === 'string' && task.last_error.includes(expectedSnippet),
+        expectedSnippet,
+        task?.last_error ?? null,
       ),
     )
   }

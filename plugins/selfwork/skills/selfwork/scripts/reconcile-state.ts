@@ -140,9 +140,42 @@ function resolveSpecPath(state: RunState) {
   return resolve(REPO_ROOT, state.spec_path)
 }
 
-function firstIssueDescription(report: ReviewReport | null) {
-  const first = report?.issues?.find((issue) => typeof issue.description === 'string' && issue.description.trim().length > 0)
+function firstIssueDescription(report: ReviewReport | null): string | null {
+  const first = report?.issues?.find(
+    (issue) => typeof issue.description === 'string' && issue.description.trim().length > 0,
+  )
   return first?.description?.trim() ?? null
+}
+
+function canConsumeReviewReport(status?: TaskStatus): boolean {
+  return status === 'dispatched' || status === 'reviewing' || status === 'agent_done' || status === 'completed'
+}
+
+function applyReviewVerdict(task: Task, reviewReport: ReviewReport, transitions: string[]): void {
+  const verdict = reviewReport.verdict
+
+  if (verdict === 'approved') {
+    task.status = 'completed'
+    task.review_status = 'approved'
+    task.last_error = null
+    transitions.push(`task ${task.id}: review -> completed`)
+    return
+  }
+
+  if (verdict === 'changes_requested') {
+    task.status = 'failed'
+    task.review_status = 'changes_requested'
+    task.last_error = firstIssueDescription(reviewReport) ?? 'Review requested changes'
+    transitions.push(`task ${task.id}: review -> failed(changes_requested)`)
+    return
+  }
+
+  if (verdict === 'blocked') {
+    task.status = 'failed'
+    task.review_status = 'blocked'
+    task.last_error = firstIssueDescription(reviewReport) ?? 'Review blocked task'
+    transitions.push(`task ${task.id}: review -> failed(blocked)`)
+  }
 }
 
 function normalizeBlockedBy(task: PlanTask) {
@@ -339,27 +372,13 @@ async function reconcileTasks(state: RunState, runId: string, transitions: strin
       transitions.push(`task ${task.id}: dispatched -> agent_done`)
     }
 
-    if ((task.status === 'reviewing' || task.status === 'agent_done' || task.status === 'completed') && existsSync(reviewReportPath)) {
+    if (canConsumeReviewReport(task.status) && existsSync(reviewReportPath)) {
       const reviewReport = await readJson<ReviewReport>(reviewReportPath)
-      const verdict = reviewReport?.verdict
       task.last_artifact = reviewReportPath
       task.updated_at = now()
 
-      if (verdict === 'approved') {
-        task.status = 'completed'
-        task.review_status = 'approved'
-        task.last_error = null
-        transitions.push(`task ${task.id}: review -> completed`)
-      } else if (verdict === 'changes_requested') {
-        task.status = 'failed'
-        task.review_status = 'changes_requested'
-        task.last_error = firstIssueDescription(reviewReport) ?? 'Review requested changes'
-        transitions.push(`task ${task.id}: review -> failed(changes_requested)`)
-      } else if (verdict === 'blocked') {
-        task.status = 'failed'
-        task.review_status = 'blocked'
-        task.last_error = firstIssueDescription(reviewReport) ?? 'Review blocked task'
-        transitions.push(`task ${task.id}: review -> failed(blocked)`)
+      if (reviewReport) {
+        applyReviewVerdict(task, reviewReport, transitions)
       }
     }
 
