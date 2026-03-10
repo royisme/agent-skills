@@ -1,227 +1,113 @@
 ---
 name: selfwork
 description: >-
-  Use this skill when the user wants to start or resume a selfwork run,
-  continue autonomous multi-step development from current project state, or
-  orchestrate analysis, design, specification, implementation, and review
-  through specialized subagents. It resumes `./.claude/selfwork/active` when
-  present, otherwise initializes project-local selfwork state and begins the
-  correct orchestration flow without turning the main agent into the implementer.
+  Autonomous end-to-end development orchestrator. Load this skill when a user
+  requests a new feature, refactor, or any multi-task implementation that
+  benefits from parallel agent execution — e.g. "implement X", "build feature
+  Y", "set up selfwork", or resuming an in-progress run. Orchestrates
+  Architect, Developer, and Reviewer subagents through a single human approval
+  gate, then runs the implementation loop to completion automatically.
 user_invocable: false
 ---
 
-# selfwork — CEO Orchestration Skill
+# selfwork — Autonomous Development Orchestrator
 
-## Related Commands
+## Core Role
+
+You are the CEO. You plan, delegate, and decide — you never write code or run tests yourself.
+
+- Read state → decide → dispatch subagents → loop → report
+- One human gate: plan approval. Everything after is fully automatic.
+- Never ask the user whether to continue after the plan is approved.
+
+## Bootstrap
+
+Run once at startup to create directories and initialise an empty `state.json`:
+```
+bun "${CLAUDE_PLUGIN_ROOT}/skills/selfwork/scripts/bootstrap.ts"
+```
+
+Returns `run_id` and the path to `state.json`.
+
+> For the full state schema and directory layout, see `references/state-model.md`.
+
+## Phases
+
+### 1. Clarify (optional)
+
+If the requirement is ambiguous, ask the user directly. 1–3 questions max, in one message.
+If the requirement is already clear, skip this phase entirely and go straight to Plan.
+
+### 2. Plan
+
+Dispatch the Architect agent. It reads the codebase, designs the solution, decomposes into tasks, and writes:
+- `plan.md` — human-readable plan with task list and dependency notes
+- `specs/tN.md` — one spec file per task (the execution contract for developers)
+
+After the Architect completes:
+1. Read `.claude/selfwork/runs/<run-id>/plan.md`
+2. Present a concise summary to the user: what will be built, how many tasks, which run in parallel
+3. Wait for user approval (the **one and only human gate**)
+4. On approval: populate `tasks` in `state.json` from the plan, set `status=executing`
+5. Write the updated `state.json`, then immediately start the Execute loop
+
+> For agent prompt templates and selection rules, see `references/agent-dispatch.md`.
+
+### 3. Execute (fully automatic)
+
+Run this loop until `status=completed` or `status=blocked`. Do not stop to ask the user.
+
+```
+loop:
+  runnable = tasks where status=pending AND all deps have status=done
+
+  if runnable is empty AND any task has status=running OR reviewing:
+    subagents are still working — wait for them to return
+
+  if runnable is empty AND all tasks have status=done:
+    → set status=completed, go to Report
+
+  if runnable is empty AND any task has status=failed:
+    → set status=blocked, go to Report
+
+  launch ALL runnable tasks IN PARALLEL
+  (one assistant message with multiple Agent tool calls)
+
+  when a developer agent completes:
+    update that task's status to reviewing
+    dispatch the reviewer for it (can overlap with other running tasks)
+
+  when a reviewer agent completes:
+    read verdict from .claude/selfwork/runs/<run-id>/reviews/tN.md
+    if verdict = approved:
+      task.status = done
+    if verdict = changes_requested AND task.retries < task.max_retries:
+      task.retries++
+      task.failure_notes = issues from review
+      task.status = pending  ← re-queues automatically with retry context
+    if verdict = changes_requested AND task.retries >= task.max_retries:
+      task.status = failed
+
+  write state.json after every status change
+  continue loop
+```
+
+### 4. Report
+
+**On completed:** Summarize what was built, list changed files, report test results, note any reviewer warnings.
+
+**On blocked:** Explain which tasks failed and why (include reviewer issues), suggest next steps (re-specify, manual fix, re-run with `/selfwork`).
+
+## Resume Behaviour
+
+When an active run exists, read `state.json` and resume from current `status`:
+- `planning`: plan.md may or may not exist — if missing, re-dispatch Architect; if present, re-present plan to user for approval
+- `executing`: re-enter the Execute loop from current task statuses (running/reviewing tasks may need re-dispatch if agents were lost)
+- `completed` / `blocked`: show the Report immediately
+
+## Commands
 
 - `/selfwork` — Start or resume orchestration
-- `/selfwork:status` — Show current run state
-- `/selfwork:queue` — Show dispatchable task queue
-- `/selfwork:clean` — Clean up completed run history
-
-## Core Principles
-
-- **Main = CEO**: Read state → decide → dispatch → accept → deliver
-- **Agent = Specialist**: Each has a clear role, input contract, and output contract
-- **JSON = Communication Protocol**: The only reliable structured interface between agents
-- **Hook = Enforcer**: Validates state compliance, blocks illegal transitions
-- **CEO never implements**: No code writing, no spec authoring, no test running
-- **Plugin root ≠ runtime root**: `${CLAUDE_PLUGIN_ROOT}` stores plugin assets; `./.claude/selfwork/` stores project runtime state only
-- **Normal execution is automatic**: once a run is approved for execution, dispatchable work must be delegated to subagents without asking the user for permission to continue
-
-## Root Separation
-
-- **Plugin root**: `${CLAUDE_PLUGIN_ROOT}`
-  - read-only source for command definitions, hooks, skills, agents, and helper scripts
-  - never used as the storage location for run state
-- **Runtime root**: `./.claude/selfwork/` inside the current repository
-  - stores `active`, `runs/`, `task-specs/`, `artifacts/`, and archive data
-  - all runtime paths must resolve from the current project root
-
-## Orchestrator Constraints
-
-The main agent must behave as a pure orchestrator:
-- may bootstrap, read state, decide next action, dispatch subagents, and update state
-- must not directly implement task code, run task-level testing, or perform task review work
-- must not consume subtask specs as if it were the assigned developer/reviewer
-- must run `scripts/reconcile-state.ts` to consume artifacts and advance run/task state before computing the next action
-- must compute next action from `scripts/dispatch-next.ts` in the current repository before ordinary execution decisions
-- must compute the executable dispatch plan from `scripts/execute-next.ts` before launching subagents
-- must use `scripts/dispatch-executor.ts` to reserve dispatch work in state before launching subagents
-- must treat `dispatch-next.ts` and `execute-next.ts` as the authoritative orchestration protocol
-- must treat a selfwork hook `instruction` payload as authoritative when the hook provides one
-- must immediately execute `instruction.action=dispatch_subagent` by launching the required subagent(s) without waiting for another user turn
-- when the hook returns ordinary-execution dispatch instructions, continue the orchestration loop automatically instead of asking whether to continue
-- if `instruction.mode=parallel`, launch all independent Agent tool calls in one assistant message
-- must ask the user only at explicit human gates:
-  - requirement clarification
-  - design confirmation
-  - spec approval
-  - blocked/manual intervention
-- must not ask the user whether to continue ordinary execution after tasks are already decomposed
-
-## Roles
-
-| Role | Agent | Responsibility | Output Artifact |
-|------|-------|----------------|-----------------|
-| Info Collector | Agent(subagent_type=info-collector) | Research, competitive analysis, context gathering | `artifacts/info-collection.json` |
-| Requirement Analyst | Agent(subagent_type=requirement-analyst) | User stories, acceptance criteria, requirement structuring | `artifacts/requirement-analysis.json` |
-| Product Designer | Agent(subagent_type=product-designer) | PRD, user flows, UI/UX specs | `.claude/selfwork/docs/<topic>.md` + `artifacts/product-spec.json` |
-| Architect | Agent(subagent_type=architect) | Technical spec, task decomposition, execution handoff files | spec file + `artifacts/plan.json` + `task-specs/<run-id>/subtasks/<task-id>.md` per task |
-| Senior Developer | Agent(subagent_type=sonnet-dev) | Complex implementation | code + `artifacts/dev-report-<task-id>.json` |
-| Developer | Agent(subagent_type=haiku-dev) | Simple implementation | code + `artifacts/dev-report-<task-id>.json` |
-| Reviewer | Agent(subagent_type=code-reviewer) | Code review, quality gate | `artifacts/review-report-<task-id>.json` |
-
-## Directory Layout
-
-- Dispatch root: `.claude/selfwork/`
-- Active run pointer: `.claude/selfwork/active`
-- Run directory: `.claude/selfwork/runs/<run-id>/`
-  - `state.json` — Master state file (schema: `references/schemas/run-state.schema.json`)
-  - `artifacts/` — Agent output contracts consumed by runtime scripts
-    - `info-collection.json`
-    - `requirement-analysis.json`
-    - `product-spec.json`
-    - `plan.json`
-    - `dev-report-<task-id>.json`
-    - `review-report-<task-id>.json`
-  - product-design and architecture phases may also write human-readable spec documents under `.claude/selfwork/docs/`
-- Task specs: `.claude/selfwork/task-specs/<run-id>/subtasks/tN.md`
-- Authoritative specs: `.claude/selfwork/docs/<topic>.md`
-
-## State Model
-
-See `references/run-state-schema.md` for full schema documentation.
-
-### Run Status Flow
-
-```
-planning → intent_recognition → info_collecting → analyzing → designing → specifying → executing → completed
-                                                                                                  ↓
-                                                                                               blocked
-```
-
-### design_status Gate
-
-- `draft` — Product design produced or pending confirmation
-- `approved` — User confirmed, specification phase may begin
-- `obsolete` — Needs re-design
-
-### spec_status Gate
-
-- `draft` — Architect producing/pending review
-- `approved` — User confirmed; reconcile materializes task-spec files and transitions to executing
-- `obsolete` — Needs re-specification
-
-### Task Status
-
-`pending → dispatching → dispatched → agent_done → reviewing → completed | failed`
-
-## CEO Orchestration Flow
-
-The detailed, phase-by-phase workflow lives in `references/operational-workflow.md`. Use that file when you need the full lifecycle.
-
-The core contract is:
-1. Bootstrap or resume from project-local `.claude/selfwork/`.
-2. Reconcile runtime state with `scripts/reconcile-state.ts` before ordinary execution decisions.
-3. Compute the next action with `scripts/dispatch-next.ts`.
-4. Build the executable dispatch plan with `scripts/execute-next.ts`.
-5. Reserve dispatch state with `scripts/dispatch-executor.ts` before any subagent launch.
-6. If work is dispatchable, launch the required subagent instead of implementing directly.
-7. Consult the user only at explicit human gates: requirement clarification, design confirmation, spec approval, or blocked/manual intervention.
-8. During ordinary execution, continue automatically until the workflow reaches a human gate, `completed`, or `blocked`.
-
-### Human Gates
-
-- `analyzing` may require user clarification when the requirement remains unclear.
-- `designing` auto-dispatches `product-designer` while either `product-spec.json` or the design doc is missing.
-- `designing` becomes a human confirmation gate once `product-spec.json` and the design doc exist, and remains there until `design_status=approved`.
-- `specifying` must stop for spec approval until `spec_status=approved`.
-- `blocked` must be reported to the user with the blocking reason.
-
-### Execution Rules
-
-- In `executing`, dispatchable pending work must be delegated immediately to the correct developer subagent.
-- In `executing`, `agent_done` work must be handed off to the reviewer automatically.
-- Retryable failures (`retry_count < max_retries`) are re-dispatched automatically with failure context — the run does **not** enter terminal blocked state while retry budget remains.
-- When `status=blocked` but retryable failed tasks exist, the orchestration loop continues and dispatches retries; only terminal blocked (all retries exhausted) requires user intervention.
-- Do not ask the user whether ordinary execution should continue once the work has been decomposed.
-
-## Agent Dispatch Templates
-
-### Info Collector Dispatch
-```
-Agent tool:
-- subagent_type: info-collector
-- prompt: user request + research scope + output path
-- Key: must write info-collection.json to artifacts/
-```
-
-### Requirement Analyst Dispatch
-```
-Agent tool:
-- subagent_type: requirement-analyst
-- prompt: user request + info collection + output path
-- Key: must write requirement-analysis.json to artifacts/
-```
-
-### Product Designer Dispatch
-```
-Agent tool:
-- subagent_type: product-designer
-- prompt: requirement analysis + output paths
-- Key: must write `.claude/selfwork/docs/<topic>.md` and `artifacts/product-spec.json`
-- Runtime rule: dispatch automatically only while design artifacts are missing; once they exist, wait at the design approval gate until `design_status=approved`
-```
-
-### Architect Dispatch
-```
-Agent tool:
-- subagent_type: architect
-- prompt: analysis report + requirement + output paths
-- Key: must output spec file, plan.json, AND per-task spec files under task-specs/<run-id>/subtasks/
-- Self-heal: reconcile-state.ts regenerates missing task-spec files from plan.json on the next reconcile pass
-```
-
-### Developer Dispatch
-```
-Agent tool:
-- subagent_type: haiku-dev (small) or sonnet-dev (medium/hard)
-- prompt: task-spec path (.claude/selfwork/task-specs/<run-id>/subtasks/<task-id>.md) + dev-report output path
-- Key: task-spec file is the execution handoff contract; it is generated by reconcile during Phase F
-- Key: must write dev-report-<task-id>.json on completion
-```
-
-### Reviewer Dispatch
-```
-Agent tool:
-- subagent_type: code-reviewer
-- prompt: dev-report + spec reference + review-report output path
-- Key: must run quality gates and write review-report-<task-id>.json
-```
-
-## Decision Rules
-
-### Agent Selection
-
-| Task Complexity | Agent |
-|----------------|-------|
-| small | haiku-dev |
-| medium | sonnet-dev |
-| hard | sonnet-dev |
-
-Retry dispatch may escalate to `sonnet-dev` when failure context or review feedback makes the retry materially harder than the original task.
-
-### Retry Strategy
-
-- Max retries: `max_retries` (default 2)
-- Retry includes review issues as additional context
-- While `retry_count < max_retries`: run stays in executing, retry is dispatched automatically
-- All retries exhausted → `status=blocked`, report to user with failure reasons and suggestions
-
-## Safety Constraints
-
-1. `run-id` must match `^[A-Za-z0-9._-]+$`
-2. All paths resolved from repo root
-3. `state.json` writes use atomic operation (temp file + rename)
-4. Hook validates every state transition
+- `/selfwork:status` — Show current run state and task progress
+- `/selfwork:queue` — Show runnable tasks and what's blocking others
+- `/selfwork:clean` — Archive completed runs

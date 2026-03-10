@@ -1,20 +1,18 @@
 ---
-description: Show current selfwork execution state. Displays current phase, agent statuses, artifact statuses, and blocking information.
+description: Show current selfwork execution state. Displays run status, task progress, and what's running or blocked.
 ---
 
-Use the `selfwork` skill to query run state and return a CEO orchestration status summary.
+Read `.claude/selfwork/active` to get the run-id, then read `.claude/selfwork/runs/<run-id>/state.json`.
 
-Also run `bun "${CLAUDE_PLUGIN_ROOT}/skills/selfwork/scripts/reconcile-state.ts"`, `bun "${CLAUDE_PLUGIN_ROOT}/skills/selfwork/scripts/dispatch-next.ts"`, and `bun "${CLAUDE_PLUGIN_ROOT}/skills/selfwork/scripts/execute-next.ts"` to report the authoritative next action and execution plan.
+Display:
 
-Display the following (read state.json and artifacts directory via Read/Bash):
+1. **Run info**: run_id, status
+2. **Requirement**: first 100 chars of `requirement`
+3. **Task progress**:
+   - Total / done / running / reviewing / pending / failed
+   - Per-task row: id, title, status, retries (if > 0)
+4. **Runnable now**: tasks where status=pending and all deps have status=done
+5. **Blocked tasks**: pending tasks whose deps are not yet done — show which dep is blocking
+6. **Blocked reason**: if status=blocked, show why
 
-1. **Run info**: run_id, status, spec_status, input_source
-2. **Phase progress**: current phase (planning/analyzing/specifying/executing/completed/blocked)
-3. **Artifact status**:
-   - analysis-report.json: present / missing
-   - plan.json: present / missing
-   - dev-report-tN.json: per-task status
-   - review-report-tN.json: per-task status
-4. **Task statistics**: total, completed, pending, failed, dispatched, reviewing
-5. **Blocking info**: blocked reason (if any)
-6. **Spec gate**: spec_status value, whether execution is allowed
+If no active run exists, say so.

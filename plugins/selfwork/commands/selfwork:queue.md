@@ -1,21 +1,22 @@
 ---
-description: Show selfwork dispatchable task queue. Lists tasks grouped by role that are ready for dispatch.
+description: Show selfwork dispatchable task queue. Lists tasks ready for dispatch and what's blocking others.
 ---
 
-Use the `selfwork` skill to compute the dispatch queue and return the list of dispatchable tasks.
+Read `.claude/selfwork/active` to get the run-id, then read `.claude/selfwork/runs/<run-id>/state.json`.
 
-Primary data source: run `bun "${CLAUDE_PLUGIN_ROOT}/skills/selfwork/scripts/reconcile-state.ts"`, `bun "${CLAUDE_PLUGIN_ROOT}/skills/selfwork/scripts/dispatch-next.ts"`, and `bun "${CLAUDE_PLUGIN_ROOT}/skills/selfwork/scripts/execute-next.ts"`, then use their outputs together with state.json.
+Display:
 
-Display the following:
+1. **Immediately dispatchable** (status=pending, all deps done):
+   - task id, title, complexity, suggested agent (haiku-dev / sonnet-dev)
+   - Can these run in parallel? Show parallel groups.
 
-1. **Current phase dispatch target**:
-   - analyzing → Analyst pending dispatch
-   - specifying → Architect pending dispatch
-   - executing → grouped by task
-2. **Dispatchable tasks** (executing phase):
-   - Pending tasks with all dependencies satisfied
-   - Per task: id, title, complexity, suggested agent_type, task_type, criticality
-3. **Pending review tasks**:
-   - Tasks in agent_done status
-   - Per task: id, title, whether dev-report exists
-4. **Blocked tasks**: pending tasks with unsatisfied dependencies, showing block reason
+2. **In progress** (status=running or reviewing):
+   - task id, title, current status
+
+3. **Waiting on deps** (status=pending, deps not done):
+   - task id, title → waiting on: [dep-id: dep-title (dep status)]
+
+4. **Done / Failed**:
+   - Brief summary count
+
+If no active run, say so.
