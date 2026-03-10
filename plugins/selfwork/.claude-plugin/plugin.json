@@ -1,6 +1,6 @@
 {
   "name": "selfwork",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "Autonomous development orchestrator: clarify \u2192 plan (one approval gate) \u2192 execute (fully automatic parallel dev+review loop) \u2192 report.",
   "author": {
     "name": "royzhu"
