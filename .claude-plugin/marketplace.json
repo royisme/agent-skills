@@ -54,10 +54,10 @@
     },
     {
       "name": "pythonic",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "category": "development",
       "strict": false,
-      "source": "./plugins/pythonice"
+      "source": "./plugins/pythonic"
     },
     {
       "name": "selfwork",
