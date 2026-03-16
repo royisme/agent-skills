@@ -30,7 +30,7 @@ Delegate coding tasks to other AI coding CLIs via `acpx`, a headless CLI client 
 Before first use, check that acpx is installed and discover available agents:
 
 ```bash
-which acpx || npm i -g acpx@^0.3.0
+which acpx || npm i -g acpx@0.3.0
 acpx --version
 ```
 
