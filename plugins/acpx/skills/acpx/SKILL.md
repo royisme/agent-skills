@@ -30,7 +30,7 @@ Delegate coding tasks to other AI coding CLIs via `acpx`, a headless CLI client 
 Before first use, check that acpx is installed and discover available agents:
 
 ```bash
-which acpx || npm i -g acpx@latest
+which acpx || npm i -g acpx@^0.3.0
 acpx --version
 ```
 
@@ -81,14 +81,14 @@ For tasks that require back-and-forth conversation or multiple steps.
 acpx --cwd "$(pwd)" <agent> sessions new --name <task-name>
 
 # Send prompts to it
-acpx --approve-reads <agent> -s <task-name> "<prompt>"
+acpx --cwd "$(pwd)" --approve-reads <agent> -s <task-name> "<prompt>"
 
 # Continue the conversation — the agent remembers prior context
-acpx --approve-reads <agent> -s <task-name> "<follow-up>"
+acpx --cwd "$(pwd)" --approve-reads <agent> -s <task-name> "<follow-up>"
 
 # Read what happened
-acpx <agent> sessions history <task-name>
-acpx <agent> sessions read <task-name>
+acpx --cwd "$(pwd)" <agent> sessions history <task-name>
+acpx --cwd "$(pwd)" <agent> sessions read <task-name>
 ```
 
 Use sessions when:
@@ -108,15 +108,15 @@ acpx --cwd "$(pwd)" --approve-reads codex -s review-task --no-wait "review src/a
 Then poll for completion:
 
 ```bash
-acpx codex -s review-task status
-acpx gemini -s ui-task status
+acpx --cwd "$(pwd)" codex -s review-task status
+acpx --cwd "$(pwd)" gemini -s ui-task status
 ```
 
 And read results:
 
 ```bash
-acpx codex sessions read review-task
-acpx gemini sessions read ui-task
+acpx --cwd "$(pwd)" codex sessions read review-task
+acpx --cwd "$(pwd)" gemini sessions read ui-task
 ```
 
 ## 4. Context Passing
@@ -153,6 +153,9 @@ Best for: large tasks with independent subtasks (e.g., "build this full-stack fe
 **Worked example** — user says "Build a user settings page with API endpoint":
 
 ```bash
+# Confirm user consent before using --approve-all (writes files)
+# User approved: proceed with dispatch
+
 # Fan-out: frontend + backend in parallel
 acpx --cwd "$(pwd)" --approve-all gemini -s settings-ui --no-wait \
   "Create a React settings page at src/components/Settings.tsx. It should have form fields for name, email, and notification preferences. Use the existing Button and Input components from src/components/ui/. The API endpoint will be PATCH /api/users/settings."
@@ -161,12 +164,12 @@ acpx --cwd "$(pwd)" --approve-all codex -s settings-api --no-wait \
   "Create a PATCH /api/users/settings endpoint in src/api/routes/users.ts. Accept JSON body with fields: name (string), email (string), notifications (boolean). Validate input, update the database, return the updated user object. Follow the patterns in the existing routes."
 
 # Poll until done
-acpx gemini -s settings-ui status
-acpx codex -s settings-api status
+acpx --cwd "$(pwd)" gemini -s settings-ui status
+acpx --cwd "$(pwd)" codex -s settings-api status
 
 # Fan-in: read results and verify integration
-acpx gemini sessions read settings-ui
-acpx codex sessions read settings-api
+acpx --cwd "$(pwd)" gemini sessions read settings-ui
+acpx --cwd "$(pwd)" codex sessions read settings-api
 ```
 
 Then read the generated files, verify the frontend calls the correct API endpoint, fix any mismatches, and report to the user.
@@ -194,13 +197,13 @@ Always clean up after workflows complete:
 
 ```bash
 # List active sessions
-acpx <agent> sessions list
+acpx --cwd "$(pwd)" <agent> sessions list
 
 # Close completed sessions
-acpx <agent> sessions close <name>
+acpx --cwd "$(pwd)" <agent> sessions close <name>
 
 # Cancel in-flight work if needed
-acpx <agent> cancel
+acpx --cwd "$(pwd)" <agent> cancel
 ```
 
 ## 8. Permissions & Safety
