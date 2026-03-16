@@ -1,0 +1,8 @@
+{
+  "name": "acpx",
+  "version": "1.0.0",
+  "description": "Multi-agent orchestrator using acpx (Agent Client Protocol). Delegates coding tasks to other AI coding CLIs (Gemini, Codex, Cursor, Copilot, Claude, etc.)",
+  "author": {
+    "name": "royzhu"
+  }
+}
